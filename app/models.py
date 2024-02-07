@@ -8,8 +8,9 @@ class User(db.Model):
     name = db.Column(db.String(64), nullable=False)
     password = db.Column(db.String(256), nullable=False)
 
-    favourites = db.relationship("Favourite", back_populates="user")
-    comments = db.relationship("Comment", back_populates="user")
+    favourites = db.relationship("Favourite", cascade="all, delete-orphan", back_populates="user")
+    comments = db.relationship("Comment", cascade="all, delete-orphan", back_populates="user")
+    locations = db.relationship("Location", cascade="all, delete-orphan", back_populates="user")
 
     def __init__(self, name, password):
         self.name = name
@@ -33,7 +34,7 @@ class Favourite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(64), nullable=False)
     description = db.Column(db.String(256))
-    userId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     locationId = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
 
     user = db.relationship("User", back_populates="favourites")
@@ -57,7 +58,7 @@ class Favourite(db.Model):
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    userId = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     title = db.Column(db.String(64), nullable=False)
     information = db.Column(db.String(256), nullable=False)
     time = db.Column(db.String(32), nullable=False)
@@ -85,10 +86,12 @@ class Location(db.Model):
     name = db.Column(db.String(64), nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
-    favourites = db.relationship("Favourite", back_populates="location")
-    weatherData = db.relationship("WeatherData", back_populates="location")
-    trafficData = db.relationship("TrafficData", back_populates="location")
+    user = db.relationship("User", back_populates="locations")
+    favourites = db.relationship("Favourite", back_populates="location", cascade="all, delete-orphan")
+    weatherData = db.relationship("WeatherData", cascade="all, delete-orphan", back_populates="location")
+    trafficData = db.relationship("TrafficData", cascade="all, delete-orphan", back_populates="location")
 
     def serialize(self):
         return {
@@ -114,7 +117,7 @@ class WeatherData(db.Model):
     temperatureFeel = db.Column(db.Integer)
     cloudCover = db.Column(db.String(32), nullable=True)
     weatherDescription = db.Column(db.String(32), nullable=False)
-    locationId = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
+    locationId = db.Column(db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False)
 
     location = db.relationship("Location", back_populates="weatherData")
 
@@ -152,7 +155,7 @@ class TrafficData(db.Model):
     flowLevel = db.Column(db.Integer)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    locationId = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
+    locationId = db.Column(db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False)
 
     location = db.relationship("Location", back_populates="trafficData")
 
