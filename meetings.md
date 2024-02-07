@@ -1,14 +1,14 @@
 # Meetings notes
 
 ## Meeting 1.
-* **DATE:**
-* **ASSISTANTS:**
+* **DATE: 30.1.2023**
+* **ASSISTANTS: Mika Oja**
 
 ### Minutes
-*Summary of what was discussed during the meeting*
+Meeting was 20 minutes long and there were no missing tasks. The project is on track. Design was sufficient.
 
 ### Action points
-*List here the actions points discussed with assistants*
+No action points were discussed.
 
 
 
