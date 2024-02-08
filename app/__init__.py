@@ -40,5 +40,6 @@ def create_app(test_config=None):
 
     app.cli.add_command(models.init_db_command)
     app.cli.add_command(models.populate_db_command)
+    app.cli.add_command(models.delete_object)
 
     return app

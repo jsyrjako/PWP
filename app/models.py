@@ -8,9 +8,15 @@ class User(db.Model):
     name = db.Column(db.String(64), nullable=False)
     password = db.Column(db.String(256), nullable=False)
 
-    favourites = db.relationship("Favourite", cascade="all, delete-orphan", back_populates="user")
-    comments = db.relationship("Comment", cascade="all, delete-orphan", back_populates="user")
-    locations = db.relationship("Location", cascade="all, delete-orphan", back_populates="user")
+    favourites = db.relationship(
+        "Favourite", cascade="all, delete-orphan", back_populates="user"
+    )
+    comments = db.relationship(
+        "Comment", cascade="all, delete-orphan", back_populates="user"
+    )
+    locations = db.relationship(
+        "Location", cascade="all, delete-orphan", back_populates="user"
+    )
 
     def __init__(self, name, password):
         self.name = name
@@ -34,7 +40,9 @@ class Favourite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(64), nullable=False)
     description = db.Column(db.String(256))
-    userId = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    userId = db.Column(
+        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
     locationId = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
 
     user = db.relationship("User", back_populates="favourites")
@@ -58,7 +66,9 @@ class Favourite(db.Model):
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    userId = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    userId = db.Column(
+        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
     title = db.Column(db.String(64), nullable=False)
     information = db.Column(db.String(256), nullable=False)
     time = db.Column(db.String(32), nullable=False)
@@ -86,12 +96,20 @@ class Location(db.Model):
     name = db.Column(db.String(64), nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    userId = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    userId = db.Column(
+        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
 
     user = db.relationship("User", back_populates="locations")
-    favourites = db.relationship("Favourite", back_populates="location", cascade="all, delete-orphan")
-    weatherData = db.relationship("WeatherData", cascade="all, delete-orphan", back_populates="location")
-    trafficData = db.relationship("TrafficData", cascade="all, delete-orphan", back_populates="location")
+    favourites = db.relationship(
+        "Favourite", back_populates="location", cascade="all, delete-orphan"
+    )
+    weatherData = db.relationship(
+        "WeatherData", cascade="all, delete-orphan", back_populates="location"
+    )
+    trafficData = db.relationship(
+        "TrafficData", cascade="all, delete-orphan", back_populates="location"
+    )
 
     def serialize(self):
         return {
@@ -117,7 +135,9 @@ class WeatherData(db.Model):
     temperatureFeel = db.Column(db.Integer)
     cloudCover = db.Column(db.String(32), nullable=True)
     weatherDescription = db.Column(db.String(32), nullable=False)
-    locationId = db.Column(db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False)
+    locationId = db.Column(
+        db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False
+    )
 
     location = db.relationship("Location", back_populates="weatherData")
 
@@ -155,7 +175,9 @@ class TrafficData(db.Model):
     flowLevel = db.Column(db.Integer)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    locationId = db.Column(db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False)
+    locationId = db.Column(
+        db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False
+    )
 
     location = db.relationship("Location", back_populates="trafficData")
 
@@ -204,13 +226,22 @@ def populate_db_command():
     # Create some locations
 
     location1 = Location(
-        name="location1", latitude=65.05785284617326, longitude=25.468937083629477
+        name="location1",
+        latitude=65.05785284617326,
+        longitude=25.468937083629477,
+        userId=1,
     )
     location2 = Location(
-        name="location2", latitude=65.0219057635643, longitude=25.482738222593955
+        name="location2",
+        latitude=65.0219057635643,
+        longitude=25.482738222593955,
+        userId=2,
     )
     location3 = Location(
-        name="location3", latitude=65.01329038381004, longitude=25.458994792425564
+        name="location3",
+        latitude=65.01329038381004,
+        longitude=25.458994792425564,
+        userId=3,
     )
     db.session.add(location1)
     db.session.add(location2)
@@ -227,9 +258,14 @@ def populate_db_command():
     favourite3 = Favourite(
         title="favourite3", description="description3", userId=3, locationId=3
     )
+    favourite4 = Favourite(
+        title="favourite3", description="description4", userId=2, locationId=1
+    )
+    db
     db.session.add(favourite1)
     db.session.add(favourite2)
     db.session.add(favourite3)
+    db.session.add(favourite4)
     db.session.commit()
 
     # Create some comments
@@ -317,4 +353,12 @@ def populate_db_command():
     db.session.add(trafficData1)
     db.session.add(trafficData2)
     db.session.add(trafficData3)
+    db.session.commit()
+
+
+@click.command("delete-object")
+@with_appcontext
+def delete_object():
+    object = User.query.first()
+    db.session.delete(object)
     db.session.commit()
