@@ -14,7 +14,7 @@
 **Remember to include all required documentation and HOWTOs, including how to create and populate the database, how to run and test the API, the url to the entrypoint and instructions on how to setup and run the client**
 
 
-# Database
+## Database
 We are using SQLite3 for our database. The database is created by running the command `flask init-db` and populated by running the command `flask populate-db`. The database is populated with some random data to make testing easier. The database is located in the file `instance/development.db`.
 
 ### Create database
@@ -64,4 +64,16 @@ deactivate
 pip install -r requirements.txt
 ```
 
+
+## Run the Project
+
+```bash
+flask --app bikinghub run
+```
+
+or with docker
+
+```bash
+docker-compose up
+```
 

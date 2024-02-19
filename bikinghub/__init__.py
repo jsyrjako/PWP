@@ -38,6 +38,12 @@ def create_app(test_config=None):
         cache.init_app(app)
         bcrypt.init_app(app)
 
+    #Converter here
+    '''
+    from jostain import converter
+    app.url_map.converters...
+    app.url_map.converters...
+    '''
     app.cli.add_command(models.init_db_command)
     app.cli.add_command(models.populate_db_command)
     app.cli.add_command(models.delete_object)

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-flask run
+flask --app bikinghub run

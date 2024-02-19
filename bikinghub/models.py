@@ -1,12 +1,12 @@
-from app import db, bcrypt
+from bikinghub import db, bcrypt
 import click
 from flask.cli import with_appcontext
 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), nullable=False)
-    password = db.Column(db.String(256), nullable=False)
+    name = db.Column(db.Text, nullable=False, unique=True)
+    password = db.Column(db.Text, nullable=False)
 
     favourites = db.relationship(
         "Favourite", cascade="all, delete-orphan", back_populates="user"
@@ -35,11 +35,27 @@ class User(db.Model):
     def hash_password(self, pw):
         return bcrypt.generate_password_hash(pw).decode("utf-8")
 
+    @staticmethod
+    def json_schema():
+        schema = {
+            "type": "object",
+            "required": ["name", "password"]
+        }
+        props = schema["properties"] = {}
+        props["name"] = {
+            "description": "User's name",
+            "type": "string",
+        }
+        props["password"] = {
+            "description": "User's password",
+            "type": "string",
+        }
+        return schema
 
 class Favourite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(64), nullable=False)
-    description = db.Column(db.String(256))
+    title = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text)
     userId = db.Column(
         db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
@@ -63,22 +79,47 @@ class Favourite(db.Model):
         self.userId = doc["userId"]
         self.locationId = doc["locationId"]
 
+    @staticmethod
+    def json_schema():
+        schema = {
+            "type": "object",
+            "required": ["title"]
+        }
+        props = schema["properties"] = {}
+        props["title"] = {
+            "description": "Favourite's title",
+            "type": "string",
+        }
+        props["description"] = {
+            "description": "Favourite's description",
+            "type": "string",
+        }
+        props["locationId"] = {
+            "description": "Favourite's locationId",
+            "type": "integer",
+        }
+        return schema
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     userId = db.Column(
         db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
-    title = db.Column(db.String(64), nullable=False)
-    information = db.Column(db.String(256), nullable=False)
-    time = db.Column(db.String(32), nullable=False)
+    locationId = db.Column(
+        db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False
+    )
+    title = db.Column(db.Text, nullable=False)
+    information = db.Column(db.Text, nullable=False)
+    time = db.Column(db.Text, nullable=False)
 
     user = db.relationship("User", back_populates="comments")
+    location = db.relationship("Location", back_populates="comments")
 
     def serialize(self):
         return {
             "id": self.id,
             "userId": self.userId,
+            "locationId": self.locationId,
             "title": self.title,
             "information": self.information,
             "time": self.time,
@@ -86,21 +127,35 @@ class Comment(db.Model):
 
     def deserialize(self, doc):
         self.userId = doc["userId"]
+        self.locationId = doc["locationId"]
         self.title = doc["title"]
         self.information = doc["information"]
         self.time = doc["time"]
 
+    @staticmethod
+    def json_schema():
+        schema = {
+            "type": "object",
+            "required": ["title", "information"]
+        }
+        props = schema["properties"] = {}
+        props["title"] = {
+            "description": "Comment's title",
+            "type": "string",
+        }
+        props["information"] = {
+            "description": "Comment's information",
+            "type": "string",
+        }
+        return schema
+
 
 class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), nullable=False)
+    name = db.Column(db.Text, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    userId = db.Column(
-        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
-    )
 
-    user = db.relationship("User", back_populates="locations")
     favourites = db.relationship(
         "Favourite", back_populates="location", cascade="all, delete-orphan"
     )
@@ -109,6 +164,9 @@ class Location(db.Model):
     )
     trafficData = db.relationship(
         "TrafficData", cascade="all, delete-orphan", back_populates="location"
+    )
+    comments = db.relationship(
+        "Comment", cascade="all, delete-orphan", back_populates="location"
     )
 
     def serialize(self):
@@ -124,6 +182,18 @@ class Location(db.Model):
         self.latitude = doc["latitude"]
         self.longitude = doc["longitude"]
 
+    @staticmethod
+    def json_schema():
+        schema = {
+            "type": "object",
+            "required": ["name"]
+        }
+        props = schema["properties"] = {}
+        props["name"] = {
+            "description": "Location's name",
+            "type": "string",
+        }
+        return schema
 
 class WeatherData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -133,8 +203,8 @@ class WeatherData(db.Model):
     windDirection = db.Column(db.Integer, nullable=True)
     temperature = db.Column(db.Float, nullable=True)
     temperatureFeel = db.Column(db.Integer)
-    cloudCover = db.Column(db.String(32), nullable=True)
-    weatherDescription = db.Column(db.String(32), nullable=False)
+    cloudCover = db.Column(db.Text, nullable=True)
+    weatherDescription = db.Column(db.Text, nullable=False)
     locationId = db.Column(
         db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False
     )
@@ -169,7 +239,7 @@ class WeatherData(db.Model):
 
 class TrafficData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), nullable=False)
+    name = db.Column(db.Text, nullable=False)
     count = db.Column(db.Integer)
     speed = db.Column(db.Integer)
     flowLevel = db.Column(db.Integer)
@@ -261,7 +331,6 @@ def populate_db_command():
     favourite4 = Favourite(
         title="favourite3", description="description4", userId=2, locationId=1
     )
-    db
     db.session.add(favourite1)
     db.session.add(favourite2)
     db.session.add(favourite3)
@@ -270,13 +339,13 @@ def populate_db_command():
 
     # Create some comments
     comment1 = Comment(
-        userId=1, title="comment1", information="information1", time="time1"
+        userId=1, title="comment1", information="information1", time="time1", locationId=1
     )
     comment2 = Comment(
-        userId=2, title="comment2", information="information2", time="time2"
+        userId=2, title="comment2", information="information2", time="time2", locationId=2
     )
     comment3 = Comment(
-        userId=3, title="comment3", information="information3", time="time3"
+        userId=3, title="comment3", information="information3", time="time3", locationId=3
     )
     db.session.add(comment1)
     db.session.add(comment2)
