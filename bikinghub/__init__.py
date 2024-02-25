@@ -1,8 +1,8 @@
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_bcrypt import Bcrypt
-import os
 
 cache = Cache()
 db = SQLAlchemy()
@@ -38,14 +38,16 @@ def create_app(test_config=None):
         cache.init_app(app)
         bcrypt.init_app(app)
 
-    #Converter here
-    '''
-    from jostain import converter
-    app.url_map.converters...
-    app.url_map.converters...
-    '''
+    from bikinghub.converters import UserConverter, FavouriteConverter, TrafficConverter, WeatherConverter, LocationConverter
+
     app.cli.add_command(models.init_db_command)
     app.cli.add_command(models.populate_db_command)
     app.cli.add_command(models.delete_object)
+
+    app.url_map.converters["user"] = UserConverter
+    app.url_map.converters["favourite"] = FavouriteConverter
+    app.url_map.converters["traffic"] = TrafficConverter
+    app.url_map.converters["weather"] = WeatherConverter
+    app.url_map.converters["location"] = LocationConverter
 
     return app
