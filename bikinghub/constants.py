@@ -10,6 +10,6 @@ FMI_FORECAST_URL = "https://www.ilmatieteenlaitos.fi/api/weather/forecasts"
 # ?place=kaijonharju&area=oulu
 
 
-MML_URL = "https://avoin-paikkatieto.maanmittauslaitos.fi/geocoding/v1/pelias/search"
+MML_URL = "https://avoin-paikkatieto.maanmittauslaitos.fi"
 
 MML_API_KEY = "" # Replace with your API key

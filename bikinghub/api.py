@@ -12,7 +12,7 @@ api.add_resource(user.UserItem, "/user/<user:user>/")
 api.add_resource(location.LocationCollection, "/locations")
 
 api.add_resource(location.LocationItem, "/location/<location:location>/")
-api.add_resource(location.LocationComment, "/location/<location:location>/comments/")
+#api.add_resource(location.LocationComment, "/location/<location:location>/comments/")
 #api.add_resource(location.LocationWeather, "/location/<location:location>/weather/")
 #api.add_resource(location.LocationTraffic, "/location/<location:location>/traffic/")
 
