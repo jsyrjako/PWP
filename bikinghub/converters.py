@@ -13,12 +13,12 @@ class UserConverter(BaseConverter):
     def to_url(self, user):
         return str(user.name)
 
-class FavoriteConverter(BaseConverter):
+class FavouriteConverter(BaseConverter):
     def to_python(self, value):
-        favorite = Location.query.get(value).first()
-        if not favorite:
+        favourite = Location.query.get(value).first()
+        if not favourite:
             raise NotFound
-        return favorite
+        return favourite
 
     def to_url(self, value):
         return value.id
@@ -32,7 +32,7 @@ class TrafficConverter(BaseConverter):
 
     def to_url(self, value):
         return value.id
-    
+
 class WeatherConverter(BaseConverter):
     def to_python(self, value):
         weather = WeatherData.query.get(value).first()
