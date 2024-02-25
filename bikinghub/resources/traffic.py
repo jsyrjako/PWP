@@ -1,10 +1,9 @@
 from sqlite3 import IntegrityError
-from attr import validate
 from flask import Response, abort, Flask, request
 from flask_restful import Resource
 from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
-from jsonschema import ValidationError
+from jsonschema import ValidationError, validate
 from werkzeug.exceptions import NotFound, UnsupportedMediaType
 from bikinghub.models import Location, User, Favourite, Comment, TrafficData, WeatherData
 from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType
@@ -30,4 +29,3 @@ class TrafficLocation(Resource):
         Add a traffic report to a location
         """
         raise NotImplementedError
-    

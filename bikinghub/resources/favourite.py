@@ -1,11 +1,10 @@
 import json
 from sqlite3 import IntegrityError
-from attr import validate
-from flask import Response, abort, Flask, request
+from flask import Response, abort, Flask, request, url_for
 from flask_restful import Resource
 from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
-from jsonschema import ValidationError
+from jsonschema import ValidationError, validate
 from werkzeug.exceptions import NotFound, UnsupportedMediaType
 from bikinghub.models import Location, User, Favourite
 from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType
@@ -21,7 +20,7 @@ class FavouriteCollection(Resource):
         """
         body = {"favourites": []}
         for fav in Favourite.query.filter_by(user_id=user).all():
-            body["favourites"].append(fav.to_dict())
+            body["favourites"].append(fav.serialize())
 
         return Response(json.dumps(body), 200, mimetype="application/json")
 
@@ -29,57 +28,63 @@ class FavouriteCollection(Resource):
         """
         Create a new favorite location for user
         """
+        if not request.json:
+            raise UnsupportedMediaType
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e))
+            raise BadRequest(str(e)) from e
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e))
+            raise UnsupportedMediaType(str(e)) from e
 
-        location_id = request.json.get("location_id")
-
-        location_obj = Location.query.get(location_id).first()
-        if not location_obj:
-            raise BadRequest
-        user_obj = User.query.get(user.id).first()
-        if not user_obj:
-            raise BadRequest
-
-        favourite = Favourite(
-            title=request.json.get("title"),
-            description=request.json.get("description"),
-            location_id=location_id,
-            user_id=user.id,
-        )
-
+        favourite = Favourite()
+        favourite.deserialize(request.json)
+        favourite.user = user
         db.session.add(favourite)
         db.session.commit()
+
         return Response(
-            json.dumps(favourite.serialize()), 201, mimetype="application/json"
+            status=201, headers={"Favourite": url_for(favourite.FavouriteItem, user=user, favourite=favourite.id)}
         )
 
 
-class FavoriteItem(Resource):
-    def get(self, favourite):
+class FavouriteItem(Resource):
+    def get(self, user, favourite):
         """
         Get user's favorite location
         """
+        if favourite not in user.favourites:
+            raise NotFound
         body = favourite.serialize()
         return Response(json.dumps(body), 200, mimetype="application/json")
 
-    def put(self):
+    def put(self, user, favourite):
         """
         Update a user's favorite location by overwriting the entire resource
         """
+        if favourite not in user.favourites:
+            raise NotFound
+        if not request.json:
+            raise UnsupportedMediaType
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
-            raise UnsupportedMediaType(str(e))
+            raise UnsupportedMediaType(str(e)) from e
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e))
+            raise UnsupportedMediaType(str(e)) from e
+        # Fetch the existing favourite from db
+        favourite.deserialize(request.json)
+        db.session.commit()
+        return Response(200)
 
-    def delete(self):
+
+    def delete(self, user, favourite):
         """
         Delete a user's favorite location
         """
-        raise NotImplementedError
+        if favourite not in user.favourites:
+            raise NotFound
+
+        db.session.delete(favourite)
+        db.session.commit()
+        return Response(status=204)
