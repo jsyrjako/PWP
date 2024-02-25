@@ -1,6 +1,7 @@
 from bikinghub import db, bcrypt
 import click
 from flask.cli import with_appcontext
+import secrets
 
 
 class User(db.Model):
@@ -14,9 +15,8 @@ class User(db.Model):
     comments = db.relationship(
         "Comment", cascade="all, delete-orphan", back_populates="user"
     )
-    locations = db.relationship(
-        "Location", cascade="all, delete-orphan", back_populates="user"
-    )
+    api_key = db.relationship("AuthenticateKey", cascade="all, delete-orphan", back_populates="user")
+
 
     def __init__(self, name, password):
         self.name = name
@@ -273,6 +273,22 @@ class TrafficData(db.Model):
         self.locationId = doc["locationId"]
 
 
+class AuthenticationKey(db.model):
+    key = db.Column(db.Text, nullable=False, unique=True, primary_key=True)
+    userId =  db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    admin = db.Column(db.Boolean, nullable=False, default=False)
+
+    user = db.relationship("User", back_populates="api_key", uselist=False)
+
+    def __init__(self, userId, admin=False):
+        self.key = self.key_hash(secrets.token_urlsafe(32))
+        self.userId = userId
+        self.admin = False
+
+    @staticmethod
+    def key_hash(key):
+        return bcrypt.generate_password_hash(key).decode("utf-8")
+
 # Create the database tables
 @click.command("init-db")
 @with_appcontext
@@ -293,25 +309,31 @@ def populate_db_command():
     db.session.add(user3)
     db.session.commit()
 
+    # Create some api keys
+    key1 = AuthenticationKey(userId=1, admin=True)
+    key2 = AuthenticationKey(userId=2, admin=False)
+    key3 = AuthenticationKey(userId=3, admin=False)
+    db.session.add(key1)
+    db.session.add(key2)
+    db.session.add(key3)
+    db.session.commit()
+
     # Create some locations
 
     location1 = Location(
         name="location1",
         latitude=65.05785284617326,
         longitude=25.468937083629477,
-        userId=1,
     )
     location2 = Location(
         name="location2",
         latitude=65.0219057635643,
         longitude=25.482738222593955,
-        userId=2,
     )
     location3 = Location(
         name="location3",
         latitude=65.01329038381004,
         longitude=25.458994792425564,
-        userId=3,
     )
     db.session.add(location1)
     db.session.add(location2)
