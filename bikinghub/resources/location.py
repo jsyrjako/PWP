@@ -15,16 +15,10 @@ class LocationCollection(Resource):
 
     def get(self):
         """
-        List all locations within a radius of 5km
+        List all locations
         """
-        lat = request.json.get("lat")
-        lon = request.json.get("lon")
-        if not lat or not lon:
-            raise NotFound
-        # query for locations within 5km of lat, lon
         all_locations = Location.query.all()
-        locations = find_within_distance(lat, lon, 5, all_locations)
-        location_data = [location.serialize() for location in locations]
+        location_data = [location.serialize() for location in all_locations]
 
         return Response(location_data, 200, mimetype="application/json")
 
@@ -93,34 +87,4 @@ class LocationItem(Resource):
         db.session.delete(location_obj)
         db.session.commit()
         return Response(204)
-
-
-
-class LocationComment(Resource):
-
-    def post(self, location, comment):
-        """
-        Add a comment to a location
-        """
-        if not request.json:
-            raise UnsupportedMediaType
-
-        text = request.json.get("text")
-        if not text:
-            raise ValidationError("text is required")
-
-        location_obj = Location.query.get(location).first()
-        if not location_obj:
-            raise NotFound
-        user_obj = User.query.get(comment).first()
-        if not user_obj:
-            raise NotFound
-
-        comment = Comment(text=text, user_id=user_obj.id, location_id=location_obj.id)
-
-        try:
-            comment.save()
-        except IntegrityError:
-            raise BadRequest("Location already in favourite list")
-
 

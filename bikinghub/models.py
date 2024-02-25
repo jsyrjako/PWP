@@ -15,7 +15,7 @@ class User(db.Model):
     comments = db.relationship(
         "Comment", cascade="all, delete-orphan", back_populates="user"
     )
-    api_key = db.relationship("AuthenticateKey", cascade="all, delete-orphan", back_populates="user")
+    api_key = db.relationship("AuthenticationKey", cascade="all, delete-orphan", back_populates="user")
 
 
     def __init__(self, name, password):
@@ -273,7 +273,7 @@ class TrafficData(db.Model):
         self.locationId = doc["locationId"]
 
 
-class AuthenticationKey(db.model):
+class AuthenticationKey(db.Model):
     key = db.Column(db.Text, nullable=False, unique=True, primary_key=True)
     userId =  db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
@@ -360,19 +360,19 @@ def populate_db_command():
     db.session.commit()
 
     # Create some comments
-    comment1 = Comment(
-        userId=1, title="comment1", information="information1", time="time1", locationId=1
-    )
-    comment2 = Comment(
-        userId=2, title="comment2", information="information2", time="time2", locationId=2
-    )
-    comment3 = Comment(
-        userId=3, title="comment3", information="information3", time="time3", locationId=3
-    )
-    db.session.add(comment1)
-    db.session.add(comment2)
-    db.session.add(comment3)
-    db.session.commit()
+    # comment1 = Comment(
+    #     userId=1, title="comment1", information="information1", time="time1", locationId=1
+    # )
+    # comment2 = Comment(
+    #     userId=2, title="comment2", information="information2", time="time2", locationId=2
+    # )
+    # comment3 = Comment(
+    #     userId=3, title="comment3", information="information3", time="time3", locationId=3
+    # )
+    # db.session.add(comment1)
+    # db.session.add(comment2)
+    # db.session.add(comment3)
+    # db.session.commit()
 
     # Create some weather data
     weatherData1 = WeatherData(
@@ -414,37 +414,37 @@ def populate_db_command():
     db.session.commit()
 
     # Create some traffic data
-    trafficData1 = TrafficData(
-        name="trafficData1",
-        count=0,
-        speed=0,
-        flowLevel=0,
-        latitude=0,
-        longitude=0,
-        locationId=1,
-    )
-    trafficData2 = TrafficData(
-        name="trafficData2",
-        count=0,
-        speed=0,
-        flowLevel=0,
-        latitude=0,
-        longitude=0,
-        locationId=2,
-    )
-    trafficData3 = TrafficData(
-        name="trafficData3",
-        count=0,
-        speed=0,
-        flowLevel=0,
-        latitude=0,
-        longitude=0,
-        locationId=3,
-    )
-    db.session.add(trafficData1)
-    db.session.add(trafficData2)
-    db.session.add(trafficData3)
-    db.session.commit()
+    # trafficData1 = TrafficData(
+    #     name="trafficData1",
+    #     count=0,
+    #     speed=0,
+    #     flowLevel=0,
+    #     latitude=0,
+    #     longitude=0,
+    #     locationId=1,
+    # )
+    # trafficData2 = TrafficData(
+    #     name="trafficData2",
+    #     count=0,
+    #     speed=0,
+    #     flowLevel=0,
+    #     latitude=0,
+    #     longitude=0,
+    #     locationId=2,
+    # )
+    # trafficData3 = TrafficData(
+    #     name="trafficData3",
+    #     count=0,
+    #     speed=0,
+    #     flowLevel=0,
+    #     latitude=0,
+    #     longitude=0,
+    #     locationId=3,
+    # )
+    # db.session.add(trafficData1)
+    # db.session.add(trafficData2)
+    # db.session.add(trafficData3)
+    # db.session.commit()
 
 
 @click.command("delete-object")
