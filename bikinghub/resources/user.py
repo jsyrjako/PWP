@@ -82,7 +82,7 @@ class UserItem(Resource):
         # Fetch the existing user from db
         user.deserialize(request.json)
         db.session.commit()
-        return Response(status=200, headers={"User": url_for("api.UserItem", user=user)}) # If name changed add headers={"User": url_for("api.UserItem", user=user)}
+        return Response(status=200, headers={"User": url_for(user.UserItem, user=user)}) # If name changed add headers={"User": url_for("api.UserItem", user=user)}
 
     @require_authentication
     def delete(self, user):

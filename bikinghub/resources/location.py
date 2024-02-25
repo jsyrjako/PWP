@@ -15,7 +15,7 @@ class LocationCollection(Resource):
 
     def get(self):
         """
-        List all locations
+        List all locations within a radius of 5km
         """
         lat = request.json.get("lat")
         lon = request.json.get("lon")
@@ -43,9 +43,9 @@ class LocationCollection(Resource):
             if not lat or not lon:
                 raise NotFound
 
-            # query for locations within 0.1km of lat, lon
+            # query for locations within 0.05km of lat, lon
             all_locations = Location.query.all()
-            if find_within_distance(lat, lon, 0.1, all_locations):
+            if find_within_distance(lat, lon, 0.05, all_locations):
                 return Response("Location already exists", status=409)
 
             location = Location()
@@ -53,7 +53,7 @@ class LocationCollection(Resource):
             db.session.add(location)
             db.session.commit()
             return Response(
-                status=201, headers={"User": url_for(location.LocationItem, location=location.id)}
+                status=201, headers={"Location": url_for(location.LocationItem, location=location.id)}
             )
         except IntegrityError:
             return Response("Location already exists", status=409)
@@ -83,7 +83,7 @@ class LocationItem(Resource):
         # Fetch the existing favourite from db
         location.deserialize(request.json)
         db.session.commit()
-        return Response(status=200, headers={"Location": url_for("api.LocationItem", location=location.id)})
+        return Response(status=200, headers={"Location": url_for(location.LocationItem, location=location.id)})
 
     @require_admin
     def delete(self, location):
@@ -121,6 +121,6 @@ class LocationComment(Resource):
         try:
             comment.save()
         except IntegrityError:
-            raise BadRequest("Location already in favorite list")
+            raise BadRequest("Location already in favourite list")
 
 
