@@ -79,6 +79,14 @@ def find_within_distance(lat, lon, distance, all_locations):
     return close_objects
 
 
+def fetch_weather_data(lat, lon):
+    """
+    Fetch weather data from the FMI open data API
+    """
+    location = query_mml_open_data_coordinates(lat, lon)
+    forecast = query_fmi_forecast(location["district"], location["municipality"])
+
+
 def query_fmi_open_data(lat, lon):
     """
     Query the FMI open data API for weather data
@@ -111,6 +119,10 @@ def query_fmi_forecast(district, municipality):
     fmi_query = f"{FMI_FORECAST_URL}?place={district}&area={municipality}"
     response = requests.get(fmi_query)
     json_resp = response.json()
+    forecast_values = json_resp["forecastValues"]
+    symbol_descriptions = json_resp["symbolDescriptions"]
+
+
     return json_resp
 
 
