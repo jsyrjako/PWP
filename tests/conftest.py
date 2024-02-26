@@ -1,8 +1,8 @@
 import pytest
 import os
 import tempfile
-from bikinghub import create_app, db
 from bikinghub.models import User, Favourite, Location, WeatherData, AuthenticationKey
+from bikinghub import create_app, db
 
 @pytest.fixture
 def client():
@@ -14,13 +14,15 @@ def client():
 
     with app.app_context():
         db.create_all()
-        populate_db(db)
+        #populate_db(db)
 
     yield app
 
-    db.session.remove()
+    #db.session.remove()
     os.close(db_fd)
-    os.unlink(db_fname)
+
+    # Comment this line when running tests in Windows
+    #os.unlink(db_fname)
 
 
 def populate_db(db):
