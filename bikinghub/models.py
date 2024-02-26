@@ -20,6 +20,9 @@ class User(db.Model):
 
     def __init__(self, name, password):
         self.name = name
+
+        if not password:
+            raise ValueError("Password cannot be empty")
         self.password = self.hash_password(password)
 
     def serialize(self):
@@ -236,6 +239,46 @@ class WeatherData(db.Model):
         self.weatherDescription = doc["weatherDescription"]
         self.locationId = doc["locationId"]
 
+    @staticmethod
+    def json_schema():
+        schema = {
+            "type": "object",
+            "required": ["temperature"]
+        }
+        props = schema["properties"] = {}
+        props["rain"] = {
+            "description": "WeatherData's rain",
+            "type": "number",
+        }
+        props["humidity"] = {
+            "description": "WeatherData's humidity",
+            "type": "integer",
+        }
+        props["windSpeed"] = {
+            "description": "WeatherData's windSpeed",
+            "type": "number",
+        }
+        props["windDirection"] = {
+            "description": "WeatherData's windDirection",
+            "type": "integer",
+        }
+        props["temperature"] = {
+            "description": "WeatherData's temperature",
+            "type": "number",
+        }
+        props["temperatureFeel"] = {
+            "description": "WeatherData's temperatureFeel",
+            "type": "integer",
+        }
+        props["cloudCover"] = {
+            "description": "WeatherData's cloudCover",
+            "type": "string",
+        }
+        props["weatherDescription"] = {
+            "description": "WeatherData's weatherDescription",
+            "type": "string",
+        }
+        return schema
 
 class TrafficData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
