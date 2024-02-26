@@ -28,8 +28,6 @@ class FavouriteCollection(Resource):
         """
         Create a new favorite location for user
         """
-        if not request.json:
-            raise UnsupportedMediaType
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:

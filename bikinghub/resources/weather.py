@@ -27,7 +27,7 @@ class WeatherCollection(Resource):
 
         return Response(json.dumps(body), 200, mimetype="application/json")
 
-    def post(self):
+    def post(self, location):
         """
         Create a new weather report
         """
@@ -39,12 +39,16 @@ class WeatherCollection(Resource):
             raise UnsupportedMediaType(str(e)) from e
 
         weather = WeatherData()
+        # fetch weather data from API
+        # haedataa(location.latitude, location.longitude)
+
         weather.deserialize(request.json)
+        weather.locationId = location.id
         db.session.add(weather)
         db.session.commit()
 
         return Response(
-            status=201, headers={"WeatherData": url_for(weather.LocationWeather, location=weather.id)}
+            status=201, headers={"WeatherData": url_for(weather.LocationWeather, location=location.id, weather=weather.id)}
         )
 
 class WeatherItem(Resource):
@@ -63,16 +67,20 @@ class WeatherItem(Resource):
         """
         Update a specific weather report for a location
         """
-        data = request.get_json()
+
+        try:
+            validate(request.json, WeatherData.json_schema())
+        except ValidationError as e:
+            raise BadRequest(str(e)) from e
+        except UnsupportedMediaType as e:
+            raise UnsupportedMediaType(str(e)) from e
         weather_obj = WeatherData.query.filter_by(locationId=location).first()
         if not weather_obj:
             raise NotFound
-
         weather.deserialize(request.json)
-        db.session.add(weather)
         db.session.commit()
 
-        return Response(200)
+        return Response(201, headers={"WeatherData": url_for(weather.LocationWeather, location=location.id, weather=weather)})
 
     def delete(self, location):
         """
