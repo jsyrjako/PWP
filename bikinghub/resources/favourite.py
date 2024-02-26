@@ -62,8 +62,8 @@ class FavouriteItem(Resource):
         """
         if favourite not in user.favourites:
             raise NotFound
-        if not request.json:
-            raise UnsupportedMediaType
+        #if not request.json:
+        #    raise UnsupportedMediaType
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:

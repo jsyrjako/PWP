@@ -2,6 +2,8 @@ from bikinghub import db, bcrypt
 import click
 from flask.cli import with_appcontext
 import secrets
+import hashlib
+from datetime import datetime
 
 
 class User(db.Model):
@@ -205,9 +207,10 @@ class WeatherData(db.Model):
     windSpeed = db.Column(db.Float, nullable=True)
     windDirection = db.Column(db.Integer, nullable=True)
     temperature = db.Column(db.Float, nullable=True)
-    temperatureFeel = db.Column(db.Integer)
+    temperatureFeel = db.Column(db.Integer, nullable=True)
     cloudCover = db.Column(db.Text, nullable=True)
-    weatherDescription = db.Column(db.Text, nullable=False)
+    weatherDescription = db.Column(db.Text, nullable=True)
+    weatherTime = db.Column(db.DateTime, nullable=True)
     locationId = db.Column(
         db.Integer, db.ForeignKey("location.id", ondelete="CASCADE"), nullable=False
     )
@@ -226,6 +229,7 @@ class WeatherData(db.Model):
             "cloudCover": self.cloudCover,
             "weatherDescription": self.weatherDescription,
             "locationId": self.locationId,
+            "weatherTime": datetime.fromisoformat(self.weatherTime)
         }
 
     def deserialize(self, doc):
@@ -238,6 +242,7 @@ class WeatherData(db.Model):
         self.cloudCover = doc["cloudCover"]
         self.weatherDescription = doc["weatherDescription"]
         self.locationId = doc["locationId"]
+        self.weatherTime = datetime.fromisoformat(doc["weatherTime"])
 
     @staticmethod
     def json_schema():
@@ -276,6 +281,10 @@ class WeatherData(db.Model):
         }
         props["weatherDescription"] = {
             "description": "WeatherData's weatherDescription",
+            "type": "string",
+        }
+        props["weatherTime"] = {
+            "description": "WeatherData's weatherTime",
             "type": "string",
         }
         return schema
@@ -317,20 +326,23 @@ class TrafficData(db.Model):
 
 
 class AuthenticationKey(db.Model):
-    key = db.Column(db.Text, nullable=False, unique=True, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.Text, nullable=False, unique=True)
     userId =  db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
 
     user = db.relationship("User", back_populates="api_key", uselist=False)
 
-    def __init__(self, userId, admin=False):
-        self.key = self.key_hash(secrets.token_urlsafe(32))
+    def __init__(self, key, userId, admin=False):
+        self.key = self.key_hash(key)
         self.userId = userId
-        self.admin = False
+        self.admin = admin
 
     @staticmethod
     def key_hash(key):
-        return bcrypt.generate_password_hash(key).decode("utf-8")
+        return hashlib.sha256(key.encode()).digest()
+
+
 
 # Create the database tables
 @click.command("init-db")
@@ -353,9 +365,9 @@ def populate_db_command():
     db.session.commit()
 
     # Create some api keys
-    key1 = AuthenticationKey(userId=1, admin=True)
-    key2 = AuthenticationKey(userId=2, admin=False)
-    key3 = AuthenticationKey(userId=3, admin=False)
+    key1 = AuthenticationKey(userId=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4")
+    key2 = AuthenticationKey(userId=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0")
+    key3 = AuthenticationKey(userId=3, admin=False, key= "9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0")
     db.session.add(key1)
     db.session.add(key2)
     db.session.add(key3)
@@ -428,6 +440,7 @@ def populate_db_command():
         cloudCover="cloudCover1",
         weatherDescription="weatherDescription1",
         locationId=1,
+        weatherTime=datetime.now()
     )
     weatherData2 = WeatherData(
         rain=0,
@@ -439,6 +452,7 @@ def populate_db_command():
         cloudCover="cloudCover2",
         weatherDescription="weatherDescription2",
         locationId=2,
+        weatherTime=datetime.now()
     )
     weatherData3 = WeatherData(
         rain=0,
@@ -450,6 +464,7 @@ def populate_db_command():
         cloudCover="cloudCover3",
         weatherDescription="weatherDescription3",
         locationId=3,
+        weatherTime=datetime.now()
     )
     db.session.add(weatherData1)
     db.session.add(weatherData2)

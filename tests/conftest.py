@@ -36,9 +36,9 @@ def populate_db(db):
     db.session.commit()
 
     # Create some api keys
-    key1 = AuthenticationKey(userId=1, admin=True)
-    key2 = AuthenticationKey(userId=2, admin=False)
-    key3 = AuthenticationKey(userId=3, admin=False)
+    key1 = AuthenticationKey(userId=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4")
+    key2 = AuthenticationKey(userId=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0")
+    key3 = AuthenticationKey(userId=3, admin=False, key= "9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0")
     db.session.add(key1)
     db.session.add(key2)
     db.session.add(key3)

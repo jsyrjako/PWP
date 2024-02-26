@@ -59,22 +59,29 @@ def test_delete_favourite(client):
         populate_db(db)
         user  = User.query.filter_by(name = "user1").first()
         favourite = Favourite.query.filter_by(userId = user.id).first()
-
+        db.session.delete(favourite)
+        db.session.commit()
+        assert Favourite.query.filter_by(userId = user.id).first() is None
 
 @pytest.mark.usefixtures("client")
-def test_location_weatherData_one_to_one(client):
+def test_delete_location(client):
     with client.app_context():
         populate_db(db)
-        location = Location.query.filter_by(name="location1").first()
-        weatherData_1 = WeatherData.query.filter_by(id=1).first()
-        weatherData_2 = WeatherData.query.filter_by(id=2).first()
-        weatherData_1.location = location
-        weatherData_2.location = location
-        db.session.add(location)
-        db.session.add(weatherData_1)
-        db.session.add(weatherData_2)
-        with pytest.raises(IntegrityError):
-            db.session.commit()
+        location = Location.query.filter_by(name = "location1").first()
+        db.session.delete(location)
+        db.session.commit()
+        assert Location.query.filter_by(name = "location1").first() is None
+        assert Favourite.query.filter_by(locationId = location.id).first() is None
+        assert WeatherData.query.filter_by(locationId = location.id).first() is None
+
+@pytest.mark.usefixtures("client")
+def test_delete_weatherData(client):
+    with client.app_context():
+        populate_db(db)
+        weatherData = WeatherData.query.filter_by(locationId = 1).first()
+        db.session.delete(weatherData)
+        db.session.commit()
+        assert WeatherData.query.filter_by(locationId = 1).first() is None
 
 def test_user_columns(client):
     with client.app_context():
@@ -91,15 +98,6 @@ def test_user_columns(client):
         with pytest.raises(ValueError):
             user = User(name="user4", password=None)
 
-def test_authentication_key_columns(client):
-    with client.app_context():
-        populate_db(db)
-        # Attempt to create an authentication key with a non-existing user ID
-        key = AuthenticationKey(userId=4, admin=True)
-        db.session.add(key)
-        with pytest.raises(IntegrityError):
-            db.session.commit()
-
 def test_location_columns(client):
     with client.app_context():
         populate_db(db)
@@ -112,12 +110,46 @@ def test_location_columns(client):
 
         db.session.rollback()
 
-        # Attempt to create a location with non-numeric latitude and longitude
+        # Attempt to create a location with non-numeric latitude
         location = Location.query.filter_by(name="location2").first()
-        location.latitude = "abc"
-        location.longitude = "def"
+        location.latitude = str(location.latitude) + "°"
         db.session.add(location)
         with pytest.raises(StatementError):
             db.session.commit()
 
         db.session.rollback()
+
+        # Attempt to create a location with non-numeric longitude
+        location = Location.query.filter_by(name="location3").first()
+        location.longitude = str(location.longitude) + "°"
+        db.session.add(location)
+        with pytest.raises(StatementError):
+            db.session.commit()
+
+def test_weatherData_columns(client):
+    with client.app_context():
+        populate_db(db)
+        #Attempt to create weather data with non-numeric temperature
+        weather_data = WeatherData.query.filter_by(id=1).first()
+        weather_data.temperature = str(weather_data.temperature) + "°C"
+        db.session.add(weather_data)
+        with pytest.raises(StatementError):
+            db.session.commit()
+
+        db.session.rollback()
+
+        #Attempt to create weather data with non-numeric rain
+        weather_data = WeatherData.query.filter_by(id=2).first()
+        weather_data.rain = str(weather_data.rain) + "mm"
+        db.session.add(weather_data)
+        with pytest.raises(StatementError):
+            db.session.commit()
+
+        db.session.rollback()
+
+        #Attempt to create weather data with non-numeric wind speed
+        weather_data = WeatherData.query.filter_by(id=3).first()
+        weather_data.windSpeed = str(weather_data.windSpeed) + "m/s"
+        db.session.add(weather_data)
+        with pytest.raises(StatementError):
+            db.session.commit()

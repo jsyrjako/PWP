@@ -11,6 +11,7 @@ bcrypt = Bcrypt()
 
 def create_app(test_config=None):
     from . import models
+    from . import api
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -38,7 +39,7 @@ def create_app(test_config=None):
         cache.init_app(app)
         bcrypt.init_app(app)
 
-    from bikinghub.converters import UserConverter, FavouriteConverter, TrafficConverter, WeatherConverter, LocationConverter
+    from bikinghub.converters import UserConverter, FavouriteConverter, WeatherConverter, LocationConverter
 
     app.cli.add_command(models.init_db_command)
     app.cli.add_command(models.populate_db_command)
@@ -46,8 +47,10 @@ def create_app(test_config=None):
 
     app.url_map.converters["user"] = UserConverter
     app.url_map.converters["favourite"] = FavouriteConverter
-    app.url_map.converters["traffic"] = TrafficConverter
+    #app.url_map.converters["traffic"] = TrafficConverter
     app.url_map.converters["weather"] = WeatherConverter
     app.url_map.converters["location"] = LocationConverter
-
+    
+    app.register_blueprint(api.api_bp)
+    
     return app

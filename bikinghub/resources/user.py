@@ -1,7 +1,6 @@
 import json
 from sqlite3 import IntegrityError
 from flask import Response, abort, Flask, request, url_for
-from flask_restful import Resource
 from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from jsonschema import ValidationError, validate

@@ -4,8 +4,8 @@ from bikinghub.models import Location, User, TrafficData, WeatherData
 
 
 class UserConverter(BaseConverter):
-    def to_python(self, user):
-        user = User.query.filter_by(name=user).first()
+    def to_python(self, value):
+        user = User.query.filter_by(name=value).first()
         if not user:
             raise NotFound
         return user
@@ -15,7 +15,7 @@ class UserConverter(BaseConverter):
 
 class FavouriteConverter(BaseConverter):
     def to_python(self, value):
-        favourite = Location.query.get(value).first()
+        favourite = Location.query.filter_by(id=value).first()
         if not favourite:
             raise NotFound
         return favourite
@@ -23,19 +23,19 @@ class FavouriteConverter(BaseConverter):
     def to_url(self, value):
         return value.id
 
-class TrafficConverter(BaseConverter):
-    def to_python(self, value):
-        traffic = TrafficData.query.get(value).first()
-        if not traffic:
-            raise NotFound
-        return traffic
-
-    def to_url(self, value):
-        return value.id
+#class TrafficConverter(BaseConverter):
+#    def to_python(self, value):
+#        traffic = TrafficData.query.get(id=value).first()
+#        if not traffic:
+#            raise NotFound
+#        return traffic
+#
+#    def to_url(self, value):
+#        return value.id
 
 class WeatherConverter(BaseConverter):
     def to_python(self, value):
-        weather = WeatherData.query.get(value).first()
+        weather = WeatherData.query.filter_by(id=value).first()
         if not weather:
             raise NotFound
         return weather
@@ -45,7 +45,7 @@ class WeatherConverter(BaseConverter):
 
 class LocationConverter(BaseConverter):
     def to_python(self, value):
-        location = Location.query.get(value).first()
+        location = Location.query.filter_by(id=value).first()
         if not location:
             raise NotFound
         return location

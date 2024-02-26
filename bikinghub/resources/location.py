@@ -1,9 +1,9 @@
 from sqlite3 import IntegrityError
 from flask import Response, abort, Flask, request, url_for
-from flask_restful import Resource
 from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from jsonschema import ValidationError, validate
+import json
 from werkzeug.exceptions import NotFound, UnsupportedMediaType
 from ..utils import find_within_distance, require_admin
 from bikinghub import db
@@ -18,9 +18,11 @@ class LocationCollection(Resource):
         List all locations
         """
         all_locations = Location.query.all()
+        if not all_locations:
+            raise NotFound
         location_data = [location.serialize() for location in all_locations]
-
-        return Response(location_data, 200, mimetype="application/json")
+        print(f"location_data: {location_data}")
+        return Response(json.dumps(location_data), status=200, mimetype="application/json")
 
     def post(self):
         try:
@@ -40,6 +42,7 @@ class LocationCollection(Resource):
             # query for locations within 0.05km of lat, lon
             all_locations = Location.query.all()
             if find_within_distance(lat, lon, 0.05, all_locations):
+                #TODO: should also return the nearest location to the user
                 return Response("Location already exists", status=409)
 
             location = Location()
@@ -55,17 +58,18 @@ class LocationCollection(Resource):
 class LocationItem(Resource):
 
     def get(self, location):
-        # location_obj = Location.query.get(location).first()
-        # if not location_obj:
-        #     raise NotFound
-        # location_doc = location_obj.serialize()
-        return Response(location, 200, mimetype="application/json")
+        location_obj = Location.query.get(location.id)
+        if not location_obj:
+            raise NotFound
+        location_doc = location_obj.serialize()
+        print("location_doc", location_doc)
+        return Response(json.dumps(location_doc), status=200, mimetype="application/json")
 
     def put(self, location):
         """
         Update a location by overwriting the entire resource
         """
-        location_obj = Location.query.get(location).first()
+        location_obj = Location.query.get(location)
         if not location_obj:
             raise NotFound
         try:
@@ -81,10 +85,7 @@ class LocationItem(Resource):
 
     @require_admin
     def delete(self, location):
-        location_obj = Location.query.get(location).first()
-        if not location_obj:
-            raise NotFound
-        db.session.delete(location_obj)
+        db.session.delete(location)
         db.session.commit()
-        return Response(204)
+        return Response(status=204)
 

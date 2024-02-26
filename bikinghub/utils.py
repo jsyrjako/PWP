@@ -1,9 +1,10 @@
 import secrets
 import math
 import requests
+from bikinghub import db
 from werkzeug.exceptions import Forbidden
 from flask import request
-from bikinghub.models import AuthenticationKey
+from bikinghub.models import AuthenticationKey, WeatherData
 from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL, SLIPPERY_URL
 
 
@@ -13,10 +14,15 @@ def require_admin(func):
     """
 
     def wrapper(*args, **kwargs):
-        key_hash = AuthenticationKey.key_hash(
-            request.headers.get("Bikinghub-Api-Key", "").strip()
-        )
-        db_key = AuthenticationKey.query.filter_by(key=key_hash, admin=True).first()
+        print("ADMIN CHECK")
+        api_key = request.headers.get("Bikinghub-Api-Key", "").strip()
+        print(f"API KEY: {api_key}")
+        if not api_key or len(api_key) == 0:
+            raise Forbidden
+        key_hash = AuthenticationKey.key_hash(api_key)
+        print(f"KEY HASH: {key_hash}")
+        db_key = AuthenticationKey.query.filter_by(admin = True).first()
+        print(f"DB KEY: {db_key.key}")
         if secrets.compare_digest(key_hash, db_key.key):
             return func(*args, **kwargs)
         raise Forbidden
@@ -30,9 +36,10 @@ def require_authentication(func):
     """
 
     def wrapper(*args, **kwargs):
-        key_hash = AuthenticationKey.key_hash(
-            request.headers.get("Bikinghub-Api-Key", "").strip()
-        )
+        api_key = request.headers.get("Bikinghub-Api-Key", "").strip()
+        if not api_key or len(api_key) == 0:
+            raise Forbidden
+        key_hash = AuthenticationKey.key_hash(api_key)
         db_key = AuthenticationKey.query.filter_by(key=key_hash).first()
         if secrets.compare_digest(key_hash, db_key.key):
             return func(*args, **kwargs)
@@ -79,19 +86,50 @@ def find_within_distance(lat, lon, distance, all_locations):
     return close_objects
 
 
+def create_weather_data(location):
+    latitude = location["latitude"]
+    longitude = location["longitude"]
+    weather_data = fetch_weather_data(latitude, longitude)
+    weathers = []
+
+    forecasts = weather_data["forecasts"]
+    for forecast in forecasts:
+        rain = forecast["forecast"]["Precipitation1h"]
+        #humidity = forecast["forecast"]["Humidity"] <- Not in the FMI forecast API
+        temp = forecast["forecast"]["Temperature"]
+        temp_feels = forecast["forecast"]["FeelsLike"]
+        wind_speed = forecast["forecast"]["WindSpeedMS"]
+        wind_direction = forecast["forecast"]["WindDirection"]
+        weather_desc = forecast["symbols"][forecast["forecast"]["SmartSymbol"]]["text_fi"]
+        weather_time = forecast["forecast"]["isolocaltime"]
+
+        weather = WeatherData(
+            rain=rain,
+            temp=temp,
+            temp_feels=temp_feels,
+            wind_speed=wind_speed,
+            wind_direction=wind_direction,
+            weather_desc=weather_desc,
+            location_id=location.id,
+            weatherTime=weather_time,
+        )
+        weathers.append(weather)
+        db.session.add(weather)
+    db.session.commit()
+    return weathers[0]
+
+
 def fetch_weather_data(lat, lon):
     """
     Fetch weather data from the FMI open data API
     """
     location = query_mml_open_data_coordinates(lat, lon)
-    forecast = query_fmi_forecast(location["district"], location["municipality"])
+    forecasts = query_fmi_forecast(location["district"], location["municipality"])
 
-
-def query_fmi_open_data(lat, lon):
-    """
-    Query the FMI open data API for weather data
-    """
-    pass
+    return {
+        "location": location,
+        "forecasts": forecasts,
+    }
 
 
 def query_slipperiness(municipality: str) -> bool:
@@ -119,11 +157,14 @@ def query_fmi_forecast(district, municipality):
     fmi_query = f"{FMI_FORECAST_URL}?place={district}&area={municipality}"
     response = requests.get(fmi_query)
     json_resp = response.json()
+
     forecast_values = json_resp["forecastValues"]
     symbol_descriptions = json_resp["symbolDescriptions"]
+    day_length = json_resp["dayLengthValues"][0]
 
+    rtn = {"forecast": forecast_values, "symbols": symbol_descriptions, "day_length": {day_length}}
 
-    return json_resp
+    return rtn
 
 
 def query_mml_open_data_coordinates(lat, lon):
