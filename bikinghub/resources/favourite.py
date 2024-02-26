@@ -19,7 +19,7 @@ class FavouriteCollection(Resource):
         List all favorite locations for user
         """
         body = {"favourites": []}
-        for fav in Favourite.query.filter_by(user_id=user).all():
+        for fav in Favourite.query.filter_by(userId=user.id).all():
             body["favourites"].append(fav.serialize())
 
         return Response(json.dumps(body), 200, mimetype="application/json")
@@ -40,9 +40,8 @@ class FavouriteCollection(Resource):
         favourite.user = user
         db.session.add(favourite)
         db.session.commit()
-
         return Response(
-            status=201, headers={"Favourite": url_for(favourite.FavouriteItem, user=user, favourite=favourite.id)}
+            status=201, headers={"Favourite": url_for(favourite.FavouriteItem, user=user, favourite=favourite)}
         )
 
 

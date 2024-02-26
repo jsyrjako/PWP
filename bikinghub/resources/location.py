@@ -28,37 +28,32 @@ class LocationCollection(Resource):
         try:
             validate(request.json, Location.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            raise UnsupportedMediaType(str(e)) from e
         except UnsupportedMediaType as e:
             raise UnsupportedMediaType(str(e)) from e
 
-        try:
-            lat = request.json.get("latitude")
-            lon = request.json.get("longitude")
+        lat = request.json.get("latitude")
+        lon = request.json.get("longitude")
 
-            if not lat or not lon:
-                raise NotFound
-
-            # query for locations within 0.05km of lat, lon
-            all_locations = Location.query.all()
-            if find_within_distance(lat, lon, 0.05, all_locations):
-                #TODO: should also return the nearest location to the user
-                return Response("Location already exists", status=409)
-
-            location = Location()
-            location.deserialize(request.json)
-            db.session.add(location)
-            db.session.commit()
-            return Response(
-                status=201, headers={"Location": url_for(location.LocationItem, location=location.id)}
-            )
-        except IntegrityError:
+        # query for locations within 0.05km of lat, lon
+        all_locations = Location.query.all()
+        if find_within_distance(lat, lon, 0.05, all_locations):
+            #TODO: should also return the nearest location to the user
             return Response("Location already exists", status=409)
+
+        location = Location()
+        location.deserialize(request.json)
+        db.session.add(location)
+        db.session.commit()
+        return Response(
+            status=201, headers={"Location": url_for("api.locationitem", location=location)}
+        )
+
 
 class LocationItem(Resource):
 
     def get(self, location):
-        location_obj = Location.query.get(location.id)
+        location_obj = Location.query.filter_by(id=location.id).first()
         if not location_obj:
             raise NotFound
         location_doc = location_obj.serialize()
@@ -69,19 +64,21 @@ class LocationItem(Resource):
         """
         Update a location by overwriting the entire resource
         """
-        location_obj = Location.query.get(location)
+        location_obj = Location.query.filter_by(id=location.id).first()
         if not location_obj:
             raise NotFound
+        
         try:
             validate(request.json, Location.json_schema())
         except ValidationError as e:
             raise UnsupportedMediaType(str(e)) from e
         except UnsupportedMediaType as e:
             raise UnsupportedMediaType(str(e)) from e
+        
         # Fetch the existing favourite from db
         location.deserialize(request.json)
         db.session.commit()
-        return Response(status=200, headers={"Location": url_for(location.LocationItem, location=location.id)})
+        return Response(status=204, headers={"Location": url_for("api.locationitem", location=location)})
 
     @require_admin
     def delete(self, location):

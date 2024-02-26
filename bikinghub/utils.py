@@ -78,8 +78,8 @@ def find_within_distance(lat, lon, distance, all_locations):
     """
     close_objects = []
     for obj in all_locations:
-        obj_lat = obj["latitude"]
-        obj_lon = obj["longitude"]
+        obj_lat = obj.latitude
+        obj_lon = obj.longitude
         dist = haversine(lat, lon, obj_lat, obj_lon)
         if dist <= distance:
             close_objects.append(obj)

@@ -20,8 +20,8 @@ class FavouriteConverter(BaseConverter):
             raise NotFound
         return favourite
 
-    def to_url(self, value):
-        return value.id
+    def to_url(self, favourite):
+        return str(favourite.id)
 
 #class TrafficConverter(BaseConverter):
 #    def to_python(self, value):
@@ -40,8 +40,8 @@ class WeatherConverter(BaseConverter):
             raise NotFound
         return weather
 
-    def to_url(self, value):
-        return value.id
+    def to_url(self, weather):
+        return str(weather.id)
 
 class LocationConverter(BaseConverter):
     def to_python(self, value):
@@ -50,5 +50,5 @@ class LocationConverter(BaseConverter):
             raise NotFound
         return location
 
-    def to_url(self, value):
-        return value.id
+    def to_url(self, location):
+        return str(location.id)

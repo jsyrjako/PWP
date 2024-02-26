@@ -19,6 +19,11 @@ def _get_user_json(number=1):
     # Creates a valid user JSON object for testing
     return {"name": "extra-user{}".format(number), "password": "extra-password{}".format}
 
+def _get_location_json(number=1):
+    # Creates a valid location JSON object for testing
+    return {"name": "extra-location{}".format(number), "latitude": 65.55785284617326, "longitude": 25.068937083629477}
+
+
 @pytest.mark.usefixtures("client")
 class TestUserCollection:
     URL = "/api/user/"       
@@ -86,6 +91,7 @@ class TestUserItem:
 @pytest.mark.usefixtures("client")
 class TestLocationCollection(object):
     URL = "/api/locations/"
+    INVALID_URL = "/api/location1/"
 
     def test_get(self, client):
         with client.app_context():
@@ -103,10 +109,48 @@ class TestLocationCollection(object):
             data = json.loads(resp.data)
             assert len(data) > 0
 
+            # Assert 404 for invalid location
+            resp = test_client.get(self.INVALID_URL)
+            assert resp.status_code == 404
 
     def test_post(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
+            valid_new = _get_location_json()
+
+            # test with wrong content type
+            resp = test_client.post(self.URL, data=json.dumps(valid_new))
+            assert resp.status_code == 415
+
+            # Assert 404 for invalid url
+            resp = test_client.post(self.INVALID_URL, json=valid_new)
+            assert resp.status_code == 404
+
+            # test with valid and see that it exists afterward
+            resp = test_client.post(self.URL, json=valid_new)
+            assert resp.status_code == 201
+            resp = test_client.get(resp.headers.get("location"))
+            assert resp.status_code == 200
+
+            # send same data again for 409
+            resp = test_client.post(self.URL, json=valid_new)
+            assert resp.status_code == 409
+
+            # location already exists or too close
+            valid_new["latitude"] = 65.55785484617326
+            valid_new["longitude"] = 25.068934083629477
+            resp = test_client.post(self.URL, json=valid_new)
+            assert resp.status_code == 409
+
+            # remove model field for 415
+            valid_new.pop("latitude")
+            resp = test_client.post(self.URL, json=valid_new)
+            assert resp.status_code == 415
+            
+            # test with wrong method
+            resp = test_client.put(self.URL, json=valid_new)
+            assert resp.status_code == 405
 
 @pytest.mark.usefixtures("client")
 class TestLocationItem(object):
@@ -135,7 +179,35 @@ class TestLocationItem(object):
 
     def test_put(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
+            valid_new = _get_location_json()
+
+            # test with wrong content type
+            resp = test_client.put(self.URL, data=json.dumps(valid_new))
+            assert resp.status_code == 415
+            
+            # Assert 404 for invalid url/id
+            resp = test_client.put(self.INVALID_URL, json=valid_new)
+            assert resp.status_code == 404
+
+            # test with new lat and lon
+            valid_new["name"] = "location1"
+            resp = test_client.put(self.URL, json=valid_new)
+            assert resp.status_code == 204
+
+            # test with everything the new
+            resp = test_client.put(self.URL, json=valid_new)
+            assert resp.status_code == 204
+
+            # remove field
+            valid_new.pop("latitude")
+            resp = test_client.put(self.URL, json=valid_new)
+            assert resp.status_code == 415
+
+            # test with wrong method
+            resp = test_client.post(self.URL, json=valid_new)
+            assert resp.status_code == 405
 
     def test_delete(self, client):
         with client.app_context():
@@ -169,6 +241,7 @@ class TestWeatherCollection:
 
     def test_get(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
 
 @pytest.mark.usefixtures("client")
@@ -178,6 +251,7 @@ class TestWeatherItem:
 
     def test_get(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
 
 @pytest.mark.usefixtures("client")
@@ -186,11 +260,15 @@ class TestFavouriteCollection:
 
     def test_get(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
+
 
     def test_post(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
+
 
 @pytest.mark.usefixtures("client")
 class TestFavouriteItem:
@@ -199,14 +277,18 @@ class TestFavouriteItem:
 
     def test_get(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
+
 
     def test_put(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
             
     def test_delete(self, client):
         with client.app_context():
+            test_client = client.test_client()
             populate_db(db)
             resp = client.delete(self.URL)
             assert resp.status_code == 204

@@ -191,12 +191,20 @@ class Location(db.Model):
     def json_schema():
         schema = {
             "type": "object",
-            "required": ["name"]
+            "required": ["name", "latitude", "longitude"]
         }
         props = schema["properties"] = {}
         props["name"] = {
             "description": "Location's name",
             "type": "string",
+        }
+        props["latitude"] = {
+            "description": "Location's latitude",
+            "type": "number",
+        }
+        props["longitude"] = {
+            "description": "Location's longitude",
+            "type": "number",
         }
         return schema
 
