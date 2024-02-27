@@ -1,8 +1,9 @@
 from flask import Blueprint
 from flask_restful import Api
-from bikinghub.resources import location, traffic, user, weather, favourite, user
+from bikinghub.resources import location, user, weather, favourite
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+
 api = Api(api_bp)
 
 # Location
@@ -24,6 +25,4 @@ api.add_resource(
 
 # Weather
 api.add_resource(weather.WeatherCollection, "/weather/")
-api.add_resource(
-    weather.WeatherItem, "/location/<location:location>/weather/<weather:weather>/"
-)
+api.add_resource(weather.WeatherItem, "/location/<location:location>/weather/")
