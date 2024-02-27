@@ -5,13 +5,22 @@ from flask_restful import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from jsonschema import ValidationError, validate
 from werkzeug.exceptions import NotFound, UnsupportedMediaType
-from bikinghub.models import Location, User, Favourite, Comment, TrafficData, WeatherData
+from bikinghub.models import (
+    Location,
+    User,
+    Favourite,
+    Comment,
+    TrafficData,
+    WeatherData,
+)
 from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType
+
 
 class TrafficCollection(Resource):
 
     def get(self):
         pass
+
 
 class TrafficItem(Resource):
 
@@ -21,6 +30,7 @@ class TrafficItem(Resource):
             raise NotFound
         traffic_doc = traffic_obj.serialize()
         return Response(traffic_doc, 200, mimetype="application/json")
+
 
 class TrafficLocation(Resource):
 

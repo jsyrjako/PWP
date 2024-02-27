@@ -21,7 +21,7 @@ def require_admin(func):
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
         print(f"KEY HASH: {key_hash}")
-        db_key = AuthenticationKey.query.filter_by(admin = True).first()
+        db_key = AuthenticationKey.query.filter_by(admin=True).first()
         print(f"DB KEY: {db_key.key}")
         if secrets.compare_digest(key_hash, db_key.key):
             return func(*args, **kwargs)
@@ -95,12 +95,14 @@ def create_weather_data(location):
     forecasts = weather_data["forecasts"]
     for forecast in forecasts:
         rain = forecast["forecast"]["Precipitation1h"]
-        #humidity = forecast["forecast"]["Humidity"] <- Not in the FMI forecast API
+        # humidity = forecast["forecast"]["Humidity"] <- Not in the FMI forecast API
         temp = forecast["forecast"]["Temperature"]
         temp_feels = forecast["forecast"]["FeelsLike"]
         wind_speed = forecast["forecast"]["WindSpeedMS"]
         wind_direction = forecast["forecast"]["WindDirection"]
-        weather_desc = forecast["symbols"][forecast["forecast"]["SmartSymbol"]]["text_fi"]
+        weather_desc = forecast["symbols"][forecast["forecast"]["SmartSymbol"]][
+            "text_fi"
+        ]
         weather_time = forecast["forecast"]["isolocaltime"]
 
         weather = WeatherData(
@@ -162,7 +164,11 @@ def query_fmi_forecast(district, municipality):
     symbol_descriptions = json_resp["symbolDescriptions"]
     day_length = json_resp["dayLengthValues"][0]
 
-    rtn = {"forecast": forecast_values, "symbols": symbol_descriptions, "day_length": {day_length}}
+    rtn = {
+        "forecast": forecast_values,
+        "symbols": symbol_descriptions,
+        "day_length": {day_length},
+    }
 
     return rtn
 

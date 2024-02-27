@@ -17,8 +17,9 @@ class User(db.Model):
     comments = db.relationship(
         "Comment", cascade="all, delete-orphan", back_populates="user"
     )
-    api_key = db.relationship("AuthenticationKey", cascade="all, delete-orphan", back_populates="user")
-
+    api_key = db.relationship(
+        "AuthenticationKey", cascade="all, delete-orphan", back_populates="user"
+    )
 
     def __init__(self, name, password):
         self.name = name
@@ -42,10 +43,7 @@ class User(db.Model):
 
     @staticmethod
     def json_schema():
-        schema = {
-            "type": "object",
-            "required": ["name", "password"]
-        }
+        schema = {"type": "object", "required": ["name", "password"]}
         props = schema["properties"] = {}
         props["name"] = {
             "description": "User's name",
@@ -56,6 +54,7 @@ class User(db.Model):
             "type": "string",
         }
         return schema
+
 
 class Favourite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,10 +85,7 @@ class Favourite(db.Model):
 
     @staticmethod
     def json_schema():
-        schema = {
-            "type": "object",
-            "required": ["title"]
-        }
+        schema = {"type": "object", "required": ["title"]}
         props = schema["properties"] = {}
         props["title"] = {
             "description": "Favourite's title",
@@ -104,6 +100,7 @@ class Favourite(db.Model):
             "type": "integer",
         }
         return schema
+
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -139,10 +136,7 @@ class Comment(db.Model):
 
     @staticmethod
     def json_schema():
-        schema = {
-            "type": "object",
-            "required": ["title", "information"]
-        }
+        schema = {"type": "object", "required": ["title", "information"]}
         props = schema["properties"] = {}
         props["title"] = {
             "description": "Comment's title",
@@ -189,10 +183,7 @@ class Location(db.Model):
 
     @staticmethod
     def json_schema():
-        schema = {
-            "type": "object",
-            "required": ["name", "latitude", "longitude"]
-        }
+        schema = {"type": "object", "required": ["name", "latitude", "longitude"]}
         props = schema["properties"] = {}
         props["name"] = {
             "description": "Location's name",
@@ -207,6 +198,7 @@ class Location(db.Model):
             "type": "number",
         }
         return schema
+
 
 class WeatherData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -237,7 +229,7 @@ class WeatherData(db.Model):
             "cloudCover": self.cloudCover,
             "weatherDescription": self.weatherDescription,
             "locationId": self.locationId,
-            "weatherTime": datetime.fromisoformat(self.weatherTime)
+            "weatherTime": datetime.fromisoformat(self.weatherTime),
         }
 
     def deserialize(self, doc):
@@ -254,10 +246,7 @@ class WeatherData(db.Model):
 
     @staticmethod
     def json_schema():
-        schema = {
-            "type": "object",
-            "required": ["temperature"]
-        }
+        schema = {"type": "object", "required": ["temperature"]}
         props = schema["properties"] = {}
         props["rain"] = {
             "description": "WeatherData's rain",
@@ -296,6 +285,7 @@ class WeatherData(db.Model):
             "type": "string",
         }
         return schema
+
 
 class TrafficData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -336,7 +326,9 @@ class TrafficData(db.Model):
 class AuthenticationKey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.Text, nullable=False, unique=True)
-    userId =  db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    userId = db.Column(
+        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
     admin = db.Column(db.Boolean, nullable=False, default=False)
 
     user = db.relationship("User", back_populates="api_key", uselist=False)
@@ -349,7 +341,6 @@ class AuthenticationKey(db.Model):
     @staticmethod
     def key_hash(key):
         return hashlib.sha256(key.encode()).digest()
-
 
 
 # Create the database tables
@@ -373,9 +364,15 @@ def populate_db_command():
     db.session.commit()
 
     # Create some api keys
-    key1 = AuthenticationKey(userId=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4")
-    key2 = AuthenticationKey(userId=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0")
-    key3 = AuthenticationKey(userId=3, admin=False, key= "9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0")
+    key1 = AuthenticationKey(
+        userId=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4"
+    )
+    key2 = AuthenticationKey(
+        userId=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0"
+    )
+    key3 = AuthenticationKey(
+        userId=3, admin=False, key="9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0"
+    )
     db.session.add(key1)
     db.session.add(key2)
     db.session.add(key3)
@@ -448,7 +445,7 @@ def populate_db_command():
         cloudCover="cloudCover1",
         weatherDescription="weatherDescription1",
         locationId=1,
-        weatherTime=datetime.now()
+        weatherTime=datetime.now(),
     )
     weatherData2 = WeatherData(
         rain=0,
@@ -460,7 +457,7 @@ def populate_db_command():
         cloudCover="cloudCover2",
         weatherDescription="weatherDescription2",
         locationId=2,
-        weatherTime=datetime.now()
+        weatherTime=datetime.now(),
     )
     weatherData3 = WeatherData(
         rain=0,
@@ -472,7 +469,7 @@ def populate_db_command():
         cloudCover="cloudCover3",
         weatherDescription="weatherDescription3",
         locationId=3,
-        weatherTime=datetime.now()
+        weatherTime=datetime.now(),
     )
     db.session.add(weatherData1)
     db.session.add(weatherData2)

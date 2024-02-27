@@ -4,25 +4,24 @@ import tempfile
 from bikinghub.models import User, Favourite, Location, WeatherData, AuthenticationKey
 from bikinghub import create_app, db
 
+
 @pytest.fixture
 def client():
     db_fd, db_fname = tempfile.mkstemp()
-    config = {
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_fname}"}
+    config = {"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_fname}"}
     app = create_app(config)
 
     with app.app_context():
         db.create_all()
-        #populate_db(db)
+        # populate_db(db)
 
     yield app
 
-    #db.session.remove()
+    # db.session.remove()
     os.close(db_fd)
 
     # Comment this line when running tests in Windows
-    #os.unlink(db_fname)
+    # os.unlink(db_fname)
 
 
 def populate_db(db):
@@ -36,9 +35,15 @@ def populate_db(db):
     db.session.commit()
 
     # Create some api keys
-    key1 = AuthenticationKey(userId=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4")
-    key2 = AuthenticationKey(userId=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0")
-    key3 = AuthenticationKey(userId=3, admin=False, key= "9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0")
+    key1 = AuthenticationKey(
+        userId=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4"
+    )
+    key2 = AuthenticationKey(
+        userId=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0"
+    )
+    key3 = AuthenticationKey(
+        userId=3, admin=False, key="9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0"
+    )
     db.session.add(key1)
     db.session.add(key2)
     db.session.add(key3)

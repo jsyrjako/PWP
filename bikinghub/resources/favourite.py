@@ -41,7 +41,12 @@ class FavouriteCollection(Resource):
         db.session.add(favourite)
         db.session.commit()
         return Response(
-            status=201, headers={"Favourite": url_for(favourite.FavouriteItem, user=user, favourite=favourite)}
+            status=201,
+            headers={
+                "Favourite": url_for(
+                    favourite.FavouriteItem, user=user, favourite=favourite
+                )
+            },
         )
 
 
@@ -61,7 +66,7 @@ class FavouriteItem(Resource):
         """
         if favourite not in user.favourites:
             raise NotFound
-        #if not request.json:
+        # if not request.json:
         #    raise UnsupportedMediaType
         try:
             validate(request.json, Favourite.json_schema())
@@ -73,7 +78,6 @@ class FavouriteItem(Resource):
         favourite.deserialize(request.json)
         db.session.commit()
         return Response(200)
-
 
     def delete(self, user, favourite):
         """

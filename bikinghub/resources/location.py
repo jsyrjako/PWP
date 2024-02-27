@@ -7,7 +7,14 @@ import json
 from werkzeug.exceptions import NotFound, UnsupportedMediaType
 from ..utils import find_within_distance, require_admin
 from bikinghub import db
-from bikinghub.models import Location, User, Favourite, Comment, TrafficData, WeatherData
+from bikinghub.models import (
+    Location,
+    User,
+    Favourite,
+    Comment,
+    TrafficData,
+    WeatherData,
+)
 from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType
 
 
@@ -22,7 +29,9 @@ class LocationCollection(Resource):
             raise NotFound
         location_data = [location.serialize() for location in all_locations]
         print(f"location_data: {location_data}")
-        return Response(json.dumps(location_data), status=200, mimetype="application/json")
+        return Response(
+            json.dumps(location_data), status=200, mimetype="application/json"
+        )
 
     def post(self):
         try:
@@ -38,7 +47,7 @@ class LocationCollection(Resource):
         # query for locations within 0.05km of lat, lon
         all_locations = Location.query.all()
         if find_within_distance(lat, lon, 0.05, all_locations):
-            #TODO: should also return the nearest location to the user
+            # TODO: should also return the nearest location to the user
             return Response("Location already exists", status=409)
 
         location = Location()
@@ -46,7 +55,8 @@ class LocationCollection(Resource):
         db.session.add(location)
         db.session.commit()
         return Response(
-            status=201, headers={"Location": url_for("api.locationitem", location=location)}
+            status=201,
+            headers={"Location": url_for("api.locationitem", location=location)},
         )
 
 
@@ -58,7 +68,9 @@ class LocationItem(Resource):
             raise NotFound
         location_doc = location_obj.serialize()
         print("location_doc", location_doc)
-        return Response(json.dumps(location_doc), status=200, mimetype="application/json")
+        return Response(
+            json.dumps(location_doc), status=200, mimetype="application/json"
+        )
 
     def put(self, location):
         """
@@ -67,22 +79,24 @@ class LocationItem(Resource):
         location_obj = Location.query.filter_by(id=location.id).first()
         if not location_obj:
             raise NotFound
-        
+
         try:
             validate(request.json, Location.json_schema())
         except ValidationError as e:
             raise UnsupportedMediaType(str(e)) from e
         except UnsupportedMediaType as e:
             raise UnsupportedMediaType(str(e)) from e
-        
+
         # Fetch the existing favourite from db
         location.deserialize(request.json)
         db.session.commit()
-        return Response(status=204, headers={"Location": url_for("api.locationitem", location=location)})
+        return Response(
+            status=204,
+            headers={"Location": url_for("api.locationitem", location=location)},
+        )
 
     @require_admin
     def delete(self, location):
         db.session.delete(location)
         db.session.commit()
         return Response(status=204)
-

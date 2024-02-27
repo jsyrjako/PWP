@@ -163,8 +163,6 @@ cython_debug/
 .vscode/
 
 # Bikinghub
-bikinghub/__pycache__/__init__.cpython-312.pyc
-bikinghub/__pycache__/models.cpython-312.pyc
-*.pyc
+bikinghub/__pycache__/
 *.db
 instance/

@@ -13,5 +13,5 @@ setup(
         "SQLAlchemy",
         "jsonschema",
         "requests",
-    ]
+    ],
 )
