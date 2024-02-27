@@ -1,9 +1,10 @@
 import secrets
 import math
 import requests
-from bikinghub import db
+from datetime import datetime
 from werkzeug.exceptions import Forbidden
 from flask import request
+from bikinghub import db
 from bikinghub.models import AuthenticationKey, WeatherData
 from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL, SLIPPERY_URL
 
@@ -41,6 +42,8 @@ def require_authentication(func):
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
         db_key = AuthenticationKey.query.filter_by(key=key_hash).first()
+        if not db_key:
+            raise Forbidden
         if secrets.compare_digest(key_hash, db_key.key):
             return func(*args, **kwargs)
         raise Forbidden
@@ -48,6 +51,7 @@ def require_authentication(func):
     return wrapper
 
 
+# From stack Overflow
 def haversine(lat1, lon1, lat2, lon2):
     """
     Calculate the great circle distance in kilometers between two points
@@ -93,31 +97,50 @@ def create_weather_data(location):
     weathers = []
 
     forecasts = weather_data["forecasts"]
-    for forecast in forecasts:
-        rain = forecast["forecast"]["Precipitation1h"]
+    for forecast in forecasts["forecast"]:
+        # print(f"forecast: {forecast}")
+        rain = forecast["Precipitation1h"]
         # humidity = forecast["forecast"]["Humidity"] <- Not in the FMI forecast API
-        temp = forecast["forecast"]["Temperature"]
-        temp_feels = forecast["forecast"]["FeelsLike"]
-        wind_speed = forecast["forecast"]["WindSpeedMS"]
-        wind_direction = forecast["forecast"]["WindDirection"]
-        weather_desc = forecast["symbols"][forecast["forecast"]["SmartSymbol"]][
-            "text_fi"
-        ]
-        weather_time = forecast["forecast"]["isolocaltime"]
+        temp = forecast["Temperature"]
+        temp_feels = forecast["FeelsLike"]
+        wind_speed = forecast["WindSpeedMS"]
+        wind_direction = forecast["WindDirection"]
+
+        symbol_id = int(forecast["SmartSymbol"])
+        symbols = [
+            symbol
+            for symbol in weather_data["forecasts"]["symbols"]
+            if symbol["id"] == symbol_id
+        ][0]
+        symbols = next(
+            (
+                symbol
+                for symbol in weather_data["forecasts"]["symbols"]
+                if symbol["id"] == symbol_id
+            ),
+            None,
+        )
+        weather_desc = symbols["text_fi"]
+
+        weather_time = datetime.strptime(forecast["isolocaltime"], "%Y-%m-%dT%H:%M:%S")
 
         weather = WeatherData(
             rain=rain,
-            temp=temp,
-            temp_feels=temp_feels,
-            wind_speed=wind_speed,
-            wind_direction=wind_direction,
-            weather_desc=weather_desc,
-            location_id=location.id,
+            temperature=temp,
+            temperatureFeel=temp_feels,
+            windSpeed=wind_speed,
+            windDirection=wind_direction,
+            weatherDescription=weather_desc,
+            locationId=location["id"],
             weatherTime=weather_time,
         )
+
         weathers.append(weather)
         db.session.add(weather)
-    db.session.commit()
+        db.session.commit()
+
+    print(f"weather: [{weathers[0]}]")
+
     return weathers[0]
 
 
@@ -125,8 +148,11 @@ def fetch_weather_data(lat, lon):
     """
     Fetch weather data from the FMI open data API
     """
+    # print(f"fetch_weather_data: lat: {lat}, lon: {lon}")
     location = query_mml_open_data_coordinates(lat, lon)
+    # print(f"location: {location}")
     forecasts = query_fmi_forecast(location["district"], location["municipality"])
+    # print(f"forecasts: {forecasts}")
 
     return {
         "location": location,
@@ -139,7 +165,7 @@ def query_slipperiness(municipality: str) -> bool:
     Query the Slipperiness API for slipperiness data
     """
     query = f"{SLIPPERY_URL}/warnings"
-    response = requests.get(query)
+    response = requests.get(query, timeout=5)
     json_resp = response.json()
     filtered_data = [
         item
@@ -157,19 +183,23 @@ def query_fmi_forecast(district, municipality):
     """
     # ?place=kaijonharju&area=oulu
     fmi_query = f"{FMI_FORECAST_URL}?place={district}&area={municipality}"
-    response = requests.get(fmi_query)
+    # print(f"fmi_query: {fmi_query}")
+    response = requests.get(fmi_query, timeout=5)
     json_resp = response.json()
+    # print(f"json_resp: {json_resp}")
 
     forecast_values = json_resp["forecastValues"]
     symbol_descriptions = json_resp["symbolDescriptions"]
     day_length = json_resp["dayLengthValues"][0]
-
+    # print(f"forecast_values: {forecast_values}")
+    # print(f"symbol_descriptions: {symbol_descriptions}")
+    # print(f"day_length: {day_length}")
     rtn = {
         "forecast": forecast_values,
         "symbols": symbol_descriptions,
-        "day_length": {day_length},
+        "day_length": day_length,
     }
-
+    # print(f"fmi_data: {rtn}")
     return rtn
 
 
@@ -185,10 +215,13 @@ def query_mml_open_data_coordinates(lat, lon):
         + f"&api-key={MML_API_KEY}"
     )
 
-    response = requests.get(pelias_query)
+    # print(f"pelias_query: {pelias_query}")
+    response = requests.get(pelias_query, timeout=5)
+    # print(f"response: {response.json()}")
     json_resp = response.json()
     post_number = json_resp["features"][0]["properties"]["osoite.Osoite.postinumero"]
     municipality_name = json_resp["features"][0]["properties"]["kuntanimiFin"]
+    # print(f"post_number: {post_number}, municipality_name: {municipality_name}")
 
     # Create bounding box for lat and lon
     upper_left = f"{lon-0.005},{lat-0.005}"
@@ -201,14 +234,25 @@ def query_mml_open_data_coordinates(lat, lon):
     place_name_query = (
         f"{MML_URL}"
         + f"/geographic-names/features/v1/collections/places/items?placeType=3010105,3020105&bbox={bbox}"
+        + f"&api-key={MML_API_KEY}"
     )
-    place_name_response = requests.get(place_name_query)
+    # print(f"place_name_query: {place_name_query}")
+    place_name_response = requests.get(place_name_query, timeout=5)
     place_name_json = place_name_response.json()
+    # print(f"place_name_json: {place_name_json}")
     district = place_name_json["features"][0]["properties"]["name"][0]["spelling"]
+    # print(f"district: {district}")
 
     return_str = {
-        "municipality": municipality_name,
-        "postnumber": post_number,
-        "district": district,
+        "municipality": municipality_name.lower(),
+        "postnumber": post_number.lower(),
+        "district": district.lower(),
     }
+    print(f"mml_data: {return_str}")
     return return_str
+
+
+# From course material
+def page_key(*args, **kwargs):
+    page = request.args.get("page", 0)
+    return request.path + f"[page_{page}]"
