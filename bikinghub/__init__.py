@@ -42,7 +42,6 @@ def create_app(test_config=None):
     from bikinghub.converters import (
         UserConverter,
         FavouriteConverter,
-        WeatherConverter,
         LocationConverter,
     )
 
@@ -53,7 +52,7 @@ def create_app(test_config=None):
     app.url_map.converters["user"] = UserConverter
     app.url_map.converters["favourite"] = FavouriteConverter
     # app.url_map.converters["traffic"] = TrafficConverter
-    app.url_map.converters["weather"] = WeatherConverter
+    # app.url_map.converters["weather"] = WeatherConverter
     app.url_map.converters["location"] = LocationConverter
 
     app.register_blueprint(api.api_bp)
