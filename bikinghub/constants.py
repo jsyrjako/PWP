@@ -13,3 +13,5 @@ FMI_FORECAST_URL = "https://www.ilmatieteenlaitos.fi/api/weather/forecasts"
 MML_URL = "https://avoin-paikkatieto.maanmittauslaitos.fi"
 
 MML_API_KEY = "" # Replace with your API key
+
+PAGE_SIZE = 50
