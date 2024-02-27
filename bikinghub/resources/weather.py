@@ -1,21 +1,11 @@
 import json
-from sqlite3 import IntegrityError
-from flask import Response, abort, Flask, request, url_for
+from flask import Response
 from flask_restful import Resource
-from flask_restful import Api, Resource
-from flask_sqlalchemy import SQLAlchemy
-from jsonschema import ValidationError, validate
 from bikinghub.models import (
-    Location,
-    User,
-    Favourite,
-    Comment,
-    TrafficData,
     WeatherData,
 )
-from bikinghub import db
 from ..utils import create_weather_data
-from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType
+from werkzeug.exceptions import NotFound
 
 
 # Query Weather from database if recent (<2 h) and near location
@@ -35,7 +25,9 @@ class WeatherCollection(Resource):
             raise NotFound
         weather_datas = [weather.serialize() for weather in all_weathers]
 
-        return Response(json.dumps(weather_datas), 200, mimetype="application/json")
+        return Response(
+            json.dumps(weather_datas), status=200, mimetype="application/json"
+        )
 
     # def post(self, location):
     #    """
@@ -66,16 +58,15 @@ class WeatherItem(Resource):
         """
         Get a specific weather report for a location
         """
-        print(f"In WeatherItem.get: location={location}")
         weather_obj = (
             WeatherData.query.filter_by(locationId=location.id)
             .order_by(WeatherData.weatherTime.desc())
             .first()
         )
         if not weather_obj:
-            weather_obj = create_weather_data(location)
+            weather_obj = create_weather_data(location.serialize())
         body = weather_obj.serialize()
-        return Response(body, 200, mimetype="application/json")
+        return Response(json.dumps(body), status=200, mimetype="application/json")
 
     # def put(self, location, weather):
     #    """

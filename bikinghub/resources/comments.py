@@ -1,17 +1,7 @@
-from sqlite3 import IntegrityError
-from flask import Response, abort, Flask, request
-from flask_restful import Api, Resource
-from flask_sqlalchemy import SQLAlchemy
-from jsonschema import ValidationError, validate
-from werkzeug.exceptions import NotFound, UnsupportedMediaType, BadRequest
-from bikinghub.models import (
-    Location,
-    User,
-    Favourite,
-    Comment,
-    TrafficData,
-    WeatherData,
-)
+from flask import Response, request
+from flask_restful import Resource
+from werkzeug.exceptions import NotFound, UnsupportedMediaType
+from bikinghub.models import Comment
 
 
 class CommentCollection(Resource):

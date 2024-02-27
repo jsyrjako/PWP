@@ -1,14 +1,11 @@
 import json
-from sqlite3 import IntegrityError
-from flask import Response, abort, Flask, request, url_for
-from flask_restful import Api, Resource
-from flask_sqlalchemy import SQLAlchemy
+from flask import Response, request, url_for
+from flask_restful import Resource
 from jsonschema import ValidationError, validate
-from werkzeug.exceptions import NotFound, UnsupportedMediaType
-from ..utils import require_admin, require_authentication
+from werkzeug.exceptions import BadRequest, UnsupportedMediaType, Conflict
 from bikinghub import db
-from bikinghub.models import Location, User, Favourite
-from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType, Conflict
+from bikinghub.models import User
+from ..utils import require_admin, require_authentication
 
 
 class UserCollection(Resource):
@@ -22,9 +19,6 @@ class UserCollection(Resource):
 
     @require_admin
     def post(self):
-        if not request.json:
-            raise UnsupportedMediaType
-
         try:
             validate(request.json, User.json_schema())
         except ValidationError as e:
@@ -32,19 +26,18 @@ class UserCollection(Resource):
         except UnsupportedMediaType as e:
             raise UnsupportedMediaType(str(e)) from e
 
-        try:
-            pw = request.json.get("password")
-            name = request.json.get("name")
-            if not pw or not name:
-                raise BadRequest("Name and password are required")
-            user = User(name=name, password=pw)
-            db.session.add(user)
-            db.session.commit()
-            return Response(
-                status=201, headers={"User": url_for(user.UserItem, user=user)}
-            )
-        except IntegrityError:
-            return Response("User already exists", status=409)
+        user = User(
+            name=request.json.get("name"), password=request.json.get("password")
+        )
+        if User.query.filter_by(name=user.name).first():
+            raise Conflict("User already exists")
+        db.session.add(user)
+        db.session.commit()
+
+        return Response(
+            status=201,
+            headers={"User": url_for("api.useritem", user=user)},
+        )
 
 
 class UserItem(Resource):
@@ -60,30 +53,21 @@ class UserItem(Resource):
         """
         PUT method for the user item. Updates the resource. Requires api authentication.
         """
-        if not request.json:
-            raise UnsupportedMediaType
         try:
             validate(request.json, User.json_schema())
         except ValidationError as e:
-            raise UnsupportedMediaType(str(e)) from e
+            raise BadRequest(str(e)) from e
         except UnsupportedMediaType as e:
             raise UnsupportedMediaType(str(e)) from e
 
-        # Do updates...
-        try:
-            old_acc_db = User.query.filter_by(name=user.name).first()
-            new_user_name = request.json["name"]
-            old_acc_db.name = new_user_name
-            db.session.commit()
-        except IntegrityError as e:
-            raise Conflict(str(e)) from e
-
-        # Fetch the existing user from db
+        if User.query.filter_by(name=request.json.get("name")).first():
+            raise Conflict("User already exists")
         user.deserialize(request.json)
         db.session.commit()
+
         return Response(
-            status=200, headers={"User": url_for(user.UserItem, user=user)}
-        )  # If name changed add headers={"User": url_for("api.UserItem", user=user)}
+            status=204, headers={"User": url_for("api.useritem", user=user)}
+        )
 
     @require_authentication
     def delete(self, user):

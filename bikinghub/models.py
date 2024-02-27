@@ -1,9 +1,8 @@
-from bikinghub import db, bcrypt
-import click
-from flask.cli import with_appcontext
-import secrets
 import hashlib
 from datetime import datetime
+from flask.cli import with_appcontext
+import click
+from bikinghub import db, bcrypt
 
 
 class User(db.Model):
@@ -229,7 +228,7 @@ class WeatherData(db.Model):
             "cloudCover": self.cloudCover,
             "weatherDescription": self.weatherDescription,
             "locationId": self.locationId,
-            "weatherTime": datetime.fromisoformat(self.weatherTime),
+            "weatherTime": str(self.weatherTime),
         }
 
     def deserialize(self, doc):
@@ -283,6 +282,7 @@ class WeatherData(db.Model):
         props["weatherTime"] = {
             "description": "WeatherData's weatherTime",
             "type": "string",
+            "format": "date-time",
         }
         return schema
 

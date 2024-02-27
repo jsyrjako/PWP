@@ -1,19 +1,7 @@
-from sqlite3 import IntegrityError
-from flask import Response, abort, Flask, request
+from flask import Response
 from flask_restful import Resource
-from flask_restful import Api, Resource
-from flask_sqlalchemy import SQLAlchemy
-from jsonschema import ValidationError, validate
-from werkzeug.exceptions import NotFound, UnsupportedMediaType
-from bikinghub.models import (
-    Location,
-    User,
-    Favourite,
-    Comment,
-    TrafficData,
-    WeatherData,
-)
-from werkzeug.exceptions import NotFound, BadRequest, UnsupportedMediaType
+from werkzeug.exceptions import NotFound
+from bikinghub.models import TrafficData
 
 
 class TrafficCollection(Resource):
