@@ -1,21 +1,14 @@
 import pytest
-import os
-import tempfile
-from datetime import datetime
-from jsonschema import validate
-from sqlalchemy.engine import Engine
-from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError, StatementError
-from bikinghub import create_app, db
+from conftest import populate_db
+from bikinghub import db
 from bikinghub.models import (
     User,
     Favourite,
     Location,
     WeatherData,
     AuthenticationKey,
-    Comment,
 )
-from conftest import populate_db
 
 # @event.listens_for(Engine, "connect")
 # def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -28,12 +21,15 @@ from conftest import populate_db
 
 @pytest.mark.usefixtures("client")
 def test_create_instances(client):
+    """
+    Test that the instances are created correctly
+    """
     # Check that everything exists
     with client.app_context():
         populate_db(db)
         assert 3 == User.query.count()
         assert AuthenticationKey.query.count() == 3
-        assert Location.query.count() == 3
+        assert Location.query.count() == 4
         assert Favourite.query.count() == 4
         assert WeatherData.query.count() == 3
         db_user = User.query.first()
@@ -52,6 +48,9 @@ def test_create_instances(client):
 
 @pytest.mark.usefixtures("client")
 def test_delete_user(client):
+    """
+    Test that the user is deleted correctly
+    """
     with client.app_context():
         populate_db(db)
         user = User.query.filter_by(name="user1").first()
@@ -65,6 +64,9 @@ def test_delete_user(client):
 
 @pytest.mark.usefixtures("client")
 def test_delete_favourite(client):
+    """
+    Test that the favourite is deleted correctly
+    """
     with client.app_context():
         populate_db(db)
         user = User.query.filter_by(name="user1").first()
@@ -76,6 +78,9 @@ def test_delete_favourite(client):
 
 @pytest.mark.usefixtures("client")
 def test_delete_location(client):
+    """
+    Test that the location is deleted correctly
+    """
     with client.app_context():
         populate_db(db)
         location = Location.query.filter_by(name="location1").first()
@@ -87,16 +92,23 @@ def test_delete_location(client):
 
 
 @pytest.mark.usefixtures("client")
-def test_delete_weatherData(client):
+def test_delete_weather_data(client):
+    """
+    Test that the weather data is deleted correctly
+    """
     with client.app_context():
         populate_db(db)
-        weatherData = WeatherData.query.filter_by(locationId=1).first()
-        db.session.delete(weatherData)
+        weather_data = WeatherData.query.filter_by(locationId=1).first()
+        db.session.delete(weather_data)
         db.session.commit()
         assert WeatherData.query.filter_by(locationId=1).first() is None
 
 
 def test_user_columns(client):
+    """
+    Test that the user columns are created correctly,
+    unique name and non-nullable password.
+    """
     with client.app_context():
         populate_db(db)
         # Attempt to create a user with a non-unique name
@@ -113,6 +125,10 @@ def test_user_columns(client):
 
 
 def test_location_columns(client):
+    """
+    Test that the location columns are created correctly,
+    unique name and non-numeric latitude and longitude.
+    """
     with client.app_context():
         populate_db(db)
         # Attempt to create a location with a None name
@@ -141,7 +157,11 @@ def test_location_columns(client):
             db.session.commit()
 
 
-def test_weatherData_columns(client):
+def test_weather_data_columns(client):
+    """
+    Test that the weather data columns are created correctly,
+    non-numeric temperature, rain and wind speed.
+    """
     with client.app_context():
         populate_db(db)
         # Attempt to create weather data with non-numeric temperature

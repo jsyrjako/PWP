@@ -1,12 +1,15 @@
+"""
+This module contains the tests for the resources in the API.
+Test are besed on http://flask.pocoo.org/en/3.0.x/testing/
+and course materials are used for guidance.
+"""
+
 import json
-import os
 import pytest
-import time
 from conftest import populate_db
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 from bikinghub import db
-from bikinghub.models import AuthenticationKey
 
 
 @event.listens_for(Engine, "connect")
@@ -20,7 +23,7 @@ def _get_user_json(number=1):
     # Creates a valid user JSON object for testing
     return {
         "name": "extra-user{}".format(number),
-        "password": "extra-password{}".format,
+        "password": "extra-password",
     }
 
 
@@ -33,74 +36,208 @@ def _get_location_json(number=1):
     }
 
 
+def _get_favourite_json(number=1):
+    # Creates a valid favourite JSON object for testing
+    return {
+        "title": "extra-favourite{}".format(number),
+        "description": "extra-description{}".format(number),
+        "userId": number,
+        "locationId": number,
+    }
+
+
+def _get_admin_auth_headers(
+    content_type="application/json",
+    api_key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4",
+):
+    # Creates valid admin headers for testing
+    return {
+        "Content-Type": f"{content_type}",
+        "Bikinghub-Api-Key": f"{api_key}",
+    }
+
+
+def _get_user_auth_headers(
+    content_type="application/json",
+    api_key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4",
+):
+    # Creates valid user headers for testing
+    return {
+        "Content-Type": f"{content_type}",
+        "Bikinghub-Api-Key": f"{api_key}",
+    }
+
+
 @pytest.mark.usefixtures("client")
 class TestUserCollection:
+    """
+    This class contains tests for the UserCollection resource.
+    """
+
     URL = "/api/user/"
 
     def test_get(self, client):
         with client.app_context():
             test_client = client.test_client()
             populate_db(db)
-            admin_token = AuthenticationKey.query.filter_by(admin=True).first()
-            admin_headers = {
-                "Content-Type": "application/json",
-                "Bikinghub-Api-Key": admin_token.key,
-            }
-            resp = test_client.get(self.URL, headers=admin_headers)
-            print(f"RESPONSE: {type(resp)}")
+
+            resp = test_client.get(self.URL, headers=_get_admin_auth_headers())
             assert resp.status_code == 200
             body = json.loads(resp.data)
             assert len(body["users"]) == 3
             for user in body["users"]:
+                assert "id" in user
                 assert "name" in user
-                assert "password" in user
 
     def test_post(self, client):
         # test with wrong content type
         with client.app_context():
+            populate_db(db)
+            test_client = client.test_client()
+
+            # test with invalid rights
             valid = _get_user_json()
-            resp = client.post(self.URL, data=json.dumps(valid))
+            resp = test_client.post(self.URL, data=json.dumps(valid))
+            assert resp.status_code == 403
+
+            # test with wrong content type and valid rights
+            resp = test_client.post(
+                self.URL,
+                data=json.dumps(valid),
+                headers=_get_admin_auth_headers(content_type="text/html"),
+            )
             assert resp.status_code == 415
+
+            # test with invalid content and valid rights
+            invalid_user = _get_user_json().pop("name")
+            resp = test_client.post(
+                self.URL,
+                data=json.dumps(invalid_user),
+                headers=_get_admin_auth_headers(),
+            )
+            assert resp.status_code == 400
+
+            # test with valid and see that it exists afterward
+            resp = test_client.post(
+                self.URL, data=json.dumps(valid), headers=_get_admin_auth_headers()
+            )
+            assert resp.status_code == 201
+
+            # send same data again for 409
+            resp = test_client.post(
+                self.URL, data=json.dumps(valid), headers=_get_admin_auth_headers()
+            )
+            assert resp.status_code == 409
 
 
 @pytest.mark.usefixtures("client")
 class TestUserItem:
     URL = "/api/user/user1/"
+    NEW_URL = "/api/user/extra-user1/"
     INVALID_URL = "/api/user/user10/"
 
     def test_get(self, client):
         with client.app_context():
+            test_client = client.test_client()
+
+            # Test with empty database
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 404
+
             populate_db(db)
-            resp = client.get(self.URL)
+
+            # Test with valid user
+            resp = test_client.get(self.URL)
             assert resp.status_code == 200
             body = json.loads(resp.data)
-            assert body["name"] == "user1"
-            assert body["password"] == "password1"
-            resp = client.get(self.INVALID_URL)
+            assert body["id"]
+            assert body["name"]
+
+            # Test with invalid user
+            resp = test_client.get(self.INVALID_URL)
             assert resp.status_code == 404
 
     def test_put(self, client):
         with client.app_context():
+            test_client = client.test_client()
+
+            # Test with empty database
+            resp = test_client.put(
+                self.URL,
+                data=json.dumps(_get_user_json()),
+                headers=_get_user_auth_headers(),
+            )
+
             populate_db(db)
             valid = _get_user_json()
 
-            # Wrong content type
-            resp = client.put(
-                self.URL, data=json.dumps(valid), headers={"Content-Type": "text/html"}
+            # Wrong content type, valid rights
+            resp = test_client.put(
+                self.URL,
+                data=json.dumps(valid),
+                headers=_get_user_auth_headers(content_type="text/html"),
             )
             assert resp.status_code == 415
 
-            resp = client.put(self.INVALID_URL, json=valid)
+            # test invalid data and valid rights
+            invalid = _get_user_json().pop("name")
+            resp = test_client.put(
+                self.URL, data=json.dumps(invalid), headers=_get_user_auth_headers()
+            )
+            assert resp.status_code == 400
+
+            # test valid data and valid rights
+            resp = test_client.put(
+                self.URL, data=json.dumps(valid), headers=_get_user_auth_headers()
+            )
+            assert resp.status_code == 204
+
+            # test with same valid data and valid rights again
+            diff_name = _get_user_json()
+            diff_name["name"] = "user2"
+            resp = test_client.put(
+                self.NEW_URL,
+                data=json.dumps(diff_name),
+                headers=_get_user_auth_headers(),
+            )
+            assert resp.status_code == 409
+
+            # Invalid rights
+            resp = test_client.put(
+                self.NEW_URL,
+                data=json.dumps(valid),
+                headers=_get_user_auth_headers(api_key="invalid_api_key"),
+            )
+            assert resp.status_code == 403
+
+            # Invalid user, valid rights
+            resp = test_client.put(
+                self.INVALID_URL,
+                data=json.dumps(valid),
+                headers=_get_user_auth_headers(),
+            )
             assert resp.status_code == 404
 
     def test_delete(self, client):
         with client.app_context():
+            test_client = client.test_client()
+
             populate_db(db)
-            resp = client.delete(self.URL)
+
+            # valid user, invalid rights
+            resp = test_client.delete(
+                self.URL, headers=_get_user_auth_headers(api_key="invalid_api_key")
+            )
+            assert resp.status_code == 403
+
+            # valid user, valid rights
+            resp = test_client.delete(self.URL, headers=_get_user_auth_headers())
             assert resp.status_code == 204
-            resp = client.get(self.URL)
+
+            resp = test_client.get(self.URL)
             assert resp.status_code == 404
-            resp = client.delete(self.INVALID_URL)
+
+            resp = test_client.delete(self.INVALID_URL)
             assert resp.status_code == 404
 
 
@@ -162,7 +299,7 @@ class TestLocationCollection(object):
             # remove model field for 415
             valid_new.pop("latitude")
             resp = test_client.post(self.URL, json=valid_new)
-            assert resp.status_code == 415
+            assert resp.status_code == 400
 
             # test with wrong method
             resp = test_client.put(self.URL, json=valid_new)
@@ -220,7 +357,7 @@ class TestLocationItem(object):
             # remove field
             valid_new.pop("latitude")
             resp = test_client.put(self.URL, json=valid_new)
-            assert resp.status_code == 415
+            assert resp.status_code == 400
 
             # test with wrong method
             resp = test_client.post(self.URL, json=valid_new)
@@ -231,88 +368,228 @@ class TestLocationItem(object):
             test_client = client.test_client()
             populate_db(db)
 
-            # Get admin token
-            admin_headers = {
-                "Content-Type": "application/json",
-                "Bikinghub-Api-Key": "ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4",
-            }
-
             # Assert 403 for non-admin user
             resp = test_client.delete(self.URL)
             assert resp.status_code == 403
 
             # Assert 204 for valid location
-            resp = test_client.delete(self.URL, headers=admin_headers)
+            resp = test_client.delete(self.URL, headers=_get_admin_auth_headers())
+            assert resp.status_code == 204
+
+            # Assert 404 for invalid location (already deleted)
+            resp = test_client.get(self.URL, headers=_get_admin_auth_headers())
+            assert resp.status_code == 404
+
+            # Assert 404 for invalid location (never existed)
+            resp = test_client.delete(
+                self.INVALID_URL, headers=_get_admin_auth_headers()
+            )
+            assert resp.status_code == 404
+
+
+@pytest.mark.usefixtures("client")
+class TestWeatherCollection:
+    URL = "/api/weather/"
+
+    def test_get(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+
+            # Assert 404 for empty database
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 404
+
+            # Assert 200 for populated database
+            populate_db(db)
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 200
+            assert resp.mimetype == "application/json"
+            data = json.loads(resp.data)
+            assert len(data) > 0
+
+
+@pytest.mark.usefixtures("client")
+class TestWeatherItem:
+    URL = "/api/location/1/weather/"
+    INVALID_URL = "/api/location/10/weather/"
+
+    def test_get(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+
+            # Assert 404 for empty database
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 404
+
+            # Assert 200 for populated database
+            populate_db(db)
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 200
+            assert resp.mimetype == "application/json"
+            data = json.loads(resp.data)
+            assert len(data) > 0
+
+            # Fetch the weather data for the location with no weather data
+            resp = test_client.get("/api/location/4/weather/")
+            assert resp.status_code == 200
+            assert resp.mimetype == "application/json"
+            data = json.loads(resp.data)
+            print(data)
+
+            # Assert 404 for invalid location
+            resp = test_client.get(self.INVALID_URL)
+            assert resp.status_code == 404
+
+
+@pytest.mark.usefixtures("client")
+class TestFavouriteCollection:
+    URL = "/api/user/user1/favourites/"
+    INVALID_URL = "/api/user/user1/non-favourites/"
+
+    def test_get(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+
+            # Assert 404 for empty database
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 404
+
+            # Assert 200 for populated database
+            populate_db(db)
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 200
+            assert resp.mimetype == "application/json"
+            data = json.loads(resp.data)
+            assert len(data) > 0
+
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 200
+
+            # Assert 404 for invalid location
+            resp = test_client.get(self.INVALID_URL)
+            assert resp.status_code == 404
+
+    def test_post(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+            populate_db(db)
+            valid = _get_favourite_json()
+
+            # test with wrong content type
+            resp = test_client.post(self.URL, data=json.dumps(valid))
+            assert resp.status_code == 415
+
+            # Assert 404 for invalid url
+            resp = test_client.post(self.INVALID_URL, json=valid)
+            assert resp.status_code == 404
+
+            # test with valid and see that it exists afterward
+            resp = test_client.post(self.URL, json=valid)
+            assert resp.status_code == 201
+            resp = test_client.get(resp.headers.get("Location"))
+            assert resp.status_code == 200
+
+            # remove model field for 400
+            valid.pop("title")
+            resp = test_client.post(self.URL, json=valid)
+            assert resp.status_code == 400
+
+            # test with wrong method
+            resp = test_client.put(self.URL, json=valid)
+            assert resp.status_code == 405
+
+
+@pytest.mark.usefixtures("client")
+class TestFavouriteItem:
+    URL = "/api/user/user1/favourite/1/"
+    INVALID_URL = "/api/user/user1/favourite/2/"
+    URL_INVALID_USER = "/api/user/user10/favourite/1/"
+
+    def test_get(self, client):
+        """
+        This function is a test function that takes a client as a parameter.
+
+        :param client: The `test_get` method seems to be a test method in a testing framework. The `client` parameter is likely
+        an object that represents a client or a connection to a server or service that the test will interact with. This client
+        object is typically used to make requests to the server or service being
+        """
+        with client.app_context():
+            test_client = client.test_client()
+
+            # Assert 404 for empty database
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 404
+
+            # Assert 200 for populated database
+            populate_db(db)
+            resp = test_client.get(self.URL)
+            assert resp.status_code == 200
+            assert resp.mimetype == "application/json"
+            data = json.loads(resp.data)
+            assert len(data) > 0
+
+            # Assert 404 for invalid location
+            resp = test_client.get(self.INVALID_URL)
+            assert resp.status_code == 404
+
+    def test_put(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+            populate_db(db)
+            valid = _get_favourite_json()
+
+            # test with wrong content type
+            resp = test_client.put(self.URL, data=json.dumps(valid))
+            assert resp.status_code == 415
+
+            # Assert 404 for invalid url
+            resp = test_client.put(self.INVALID_URL, json=valid)
+            assert resp.status_code == 404
+
+            # test with correct content
+            resp = test_client.put(self.URL, json=valid)
+            assert resp.status_code == 204
+
+            # test with missing field
+            valid.pop("title")
+            resp = test_client.put(self.URL, json=valid)
+            assert resp.status_code == 400
+
+            # test with wrong method
+            resp = test_client.post(self.URL, json=valid)
+            assert resp.status_code == 405
+
+    def test_delete(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+            populate_db(db)
+
+            # Assert 403 for non-authenticated user
+            resp = test_client.delete(self.URL)
+            assert resp.status_code == 403
+
+            # Assert 204 for valid location
+            resp = test_client.delete(self.URL, headers=_get_user_auth_headers())
             assert resp.status_code == 204
 
             # Assert 404 for invalid location (already deleted)
             resp = test_client.get(self.URL)
             assert resp.status_code == 404
 
+            # Assert 404 for favourite not in user's favourites
+            resp = test_client.delete(
+                self.INVALID_URL, headers=_get_user_auth_headers()
+            )
+            assert resp.status_code == 404
+
+            # Assert 404 for favourite not in nonexistent user's favourites
+            resp = test_client.delete(
+                self.URL_INVALID_USER, headers=_get_user_auth_headers()
+            )
+            assert resp.status_code == 404
+
             # Assert 404 for invalid location (never existed)
-            resp = test_client.delete(self.INVALID_URL, headers=admin_headers)
-            assert resp.status_code == 404
-
-
-@pytest.mark.usefixtures("client")
-class TestWeatherCollection:
-    URL = "/api/location/1/weather/"
-    INVALID_URL = "/api/location/1/non-weather/"
-
-    def test_get(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-
-
-@pytest.mark.usefixtures("client")
-class TestWeatherItem:
-    URL = "/api/location/1/weather/1/"
-    INVALID_URL = "/api/location/1/weather/10"
-
-    def test_get(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-
-
-@pytest.mark.usefixtures("client")
-class TestFavouriteCollection:
-    URL = "/api/user/user1/favourites/"
-
-    def test_get(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-
-    def test_post(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-
-
-@pytest.mark.usefixtures("client")
-class TestFavouriteItem:
-    URL = "/api/user/user1/favourites/1/"
-    INVALID_URL = "/api/user/user1/favourites/10/"
-
-    def test_get(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-
-    def test_put(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-
-    def test_delete(self, client):
-        with client.app_context():
-            test_client = client.test_client()
-            populate_db(db)
-            resp = client.delete(self.URL)
-            assert resp.status_code == 204
-            resp = client.get(self.URL)
-            assert resp.status_code == 404
-            resp = client.delete(self.INVALID_URL)
+            resp = test_client.delete(
+                self.INVALID_URL, headers=_get_user_auth_headers()
+            )
             assert resp.status_code == 404

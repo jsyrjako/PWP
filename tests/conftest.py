@@ -1,6 +1,7 @@
 import pytest
 import os
 import tempfile
+from datetime import datetime
 from bikinghub.models import User, Favourite, Location, WeatherData, AuthenticationKey
 from bikinghub import create_app, db
 
@@ -66,9 +67,15 @@ def populate_db(db):
         latitude=65.01329038381004,
         longitude=25.458994792425564,
     )
+    location4 = Location(
+        name="location4",
+        latitude=65.01326969,
+        longitude=25.45420420,
+    )
     db.session.add(location1)
     db.session.add(location2)
     db.session.add(location3)
+    db.session.add(location4)
     db.session.commit()
 
     # Create some favourites
@@ -100,6 +107,7 @@ def populate_db(db):
         temperatureFeel=0,
         cloudCover="cloudCover1",
         weatherDescription="weatherDescription1",
+        weatherTime=datetime.now(),
         locationId=1,
     )
     weatherData2 = WeatherData(
@@ -111,6 +119,7 @@ def populate_db(db):
         temperatureFeel=0,
         cloudCover="cloudCover2",
         weatherDescription="weatherDescription2",
+        weatherTime=datetime.now(),
         locationId=2,
     )
     weatherData3 = WeatherData(
@@ -122,6 +131,7 @@ def populate_db(db):
         temperatureFeel=0,
         cloudCover="cloudCover3",
         weatherDescription="weatherDescription3",
+        weatherTime=datetime.now(),
         locationId=3,
     )
     db.session.add(weatherData1)
