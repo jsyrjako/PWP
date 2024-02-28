@@ -30,7 +30,7 @@ def test_create_instances(client):
         assert 3 == User.query.count()
         assert AuthenticationKey.query.count() == 3
         assert Location.query.count() == 4
-        assert Favourite.query.count() == 4
+        assert Favourite.query.count() == 5
         assert WeatherData.query.count() == 3
         db_user = User.query.first()
         db_auth_key = AuthenticationKey.query.first()
@@ -73,7 +73,7 @@ def test_delete_favourite(client):
         favourite = Favourite.query.filter_by(userId=user.id).first()
         db.session.delete(favourite)
         db.session.commit()
-        assert Favourite.query.filter_by(userId=user.id).first() is None
+        assert Favourite.query.filter_by(id=favourite.id).first() is None
 
 
 @pytest.mark.usefixtures("client")

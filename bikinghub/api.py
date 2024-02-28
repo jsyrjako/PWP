@@ -6,16 +6,13 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 api = Api(api_bp)
 
-# Location
+# User
 api.add_resource(user.UserCollection, "/user/")
 api.add_resource(user.UserItem, "/user/<user:user>/")
 
+# Location
 api.add_resource(location.LocationCollection, "/locations/")
-
 api.add_resource(location.LocationItem, "/location/<location:location>/")
-# api.add_resource(location.LocationComment, "/location/<location:location>/comments/")
-# api.add_resource(weather.LocationWeather, "/location/<location:location>/weather/")
-# api.add_resource(location.LocationTraffic, "/location/<location:location>/traffic/")
 
 # Favourites
 api.add_resource(favourite.FavouriteCollection, "/user/<user:user>/favourites/")

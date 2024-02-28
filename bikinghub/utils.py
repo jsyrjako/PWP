@@ -3,10 +3,10 @@ import math
 import requests
 from datetime import datetime
 from werkzeug.exceptions import Forbidden
-from flask import request
-from bikinghub import db
+from flask import request, url_for
+from bikinghub import db, cache, api
 from bikinghub.models import AuthenticationKey, WeatherData
-from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL, SLIPPERY_URL
+from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL, SLIPPERY_URL, PAGE_SIZE
 
 
 def require_admin(func):
@@ -254,5 +254,10 @@ def query_mml_open_data_coordinates(lat, lon):
 
 # From course material
 def page_key(*args, **kwargs):
+    """
+    Generate a cache key for a page
+    """
+    user = kwargs.get("user")
     page = request.args.get("page", 0)
-    return request.path + f"[page_{page}]"
+    request_path = url_for("api.favouritecollection", user=user)
+    return request_path + f"[user_{user}_page_{page}]"

@@ -456,14 +456,23 @@ class TestFavouriteCollection:
 
             # Assert 200 for populated database
             populate_db(db)
+            valid = _get_favourite_json()
+
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
             assert resp.mimetype == "application/json"
             data = json.loads(resp.data)
             assert len(data) > 0
 
+            # Assert 200 for testing the cache
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
+
+            # test with valid and see that it exists afterward
+            #resp = test_client.post(self.URL, json=valid)
+            #assert resp.status_code == 201
+            #resp = test_client.get(resp.headers.get("Location"))
+            #assert resp.status_code == 200
 
             # Assert 404 for invalid location
             resp = test_client.get(self.INVALID_URL)

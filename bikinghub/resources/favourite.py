@@ -11,15 +11,19 @@ from ..utils import require_authentication, page_key
 
 class FavouriteCollection(Resource):
 
+    def _clear_cache(self, user):
+        request_path = url_for("api.favouritecollection", user=user)
+        for page in range(0, PAGE_SIZE):
+            cache_key = request_path + f"[user_{user}_page_{page}]"
+            cache.delete(cache_key)
+
     # Lists all the user's favourites
-    @cache.cached(
-        timeout=None, make_cache_key=page_key, response_filter=lambda r: False
-    )
+    @cache.cached(timeout=10000, make_cache_key=page_key, response_filter=lambda r: True)
     def get(self, user):
         """
         List all favorite locations for user
         """
-        print("Cache miss")
+        print("Cache miss###############################################")
 
         try:
             page = int(request.args.get("page", 0))
@@ -27,14 +31,14 @@ class FavouriteCollection(Resource):
             return (400, "Invalid page value")
 
         remaining = (
-            Favourite.query.filter_by(userId=user.id)
+            Favourite.query.filter_by(user=user)
             .order_by("locationId")
             .offset(page)
         )
 
         body = {"favourites": []}
 
-        for fav in remaining.limit(PAGE_SIZE).all():
+        for fav in remaining.limit(PAGE_SIZE):
             body["favourites"].append(fav.serialize())
 
         # for fav in Favourite.query.filter_by(userId=user.id).all():
@@ -63,6 +67,8 @@ class FavouriteCollection(Resource):
         db.session.add(favourite)
         db.session.commit()
 
+        self._clear_cache(user)
+
         return Response(
             status=201,
             headers={
@@ -72,6 +78,13 @@ class FavouriteCollection(Resource):
 
 
 class FavouriteItem(Resource):
+
+    def _clear_cache(self, user):
+        request_path = url_for("api.favouritecollection", user=user)
+        for page in range(0, PAGE_SIZE):
+            cache_key = request_path + f"[user_{user}_page_{page}]"
+            cache.delete(cache_key)
+
     def get(self, user, favourite):
         """
         Get user's favorite location
@@ -98,6 +111,8 @@ class FavouriteItem(Resource):
         # Fetch the existing favourite from db
         favourite.deserialize(request.json)
         db.session.commit()
+        
+        self._clear_cache(user)
 
         return Response(status=204)
 
@@ -108,7 +123,9 @@ class FavouriteItem(Resource):
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
             raise NotFound
-
         db.session.delete(favourite)
         db.session.commit()
+
+        self._clear_cache(user)
+
         return Response(status=204)
