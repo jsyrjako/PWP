@@ -1,8 +1,14 @@
+"""
+This file is the entry point for the application. It creates the Flask app and
+initializes the database and cache. It also registers the API blueprint and
+custom URL converters.
+"""
+
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_bcrypt import Bcrypt
-import os
 
 cache = Cache()
 db = SQLAlchemy()
@@ -10,7 +16,19 @@ bcrypt = Bcrypt()
 
 
 def create_app(test_config=None):
+    """
+    Create and configure the app. If a test_config is provided, it will be used
+    instead of the instance config. The config should contain
+    the following configuration:
+    - SECRET
+    - SQLALCHEMY_DATABASE_URI
+    - SQLALCHEMY_TRACK_MODIFICATIONS
+    - CACHE_TYPE
+    - CACHE_DIR
+    """
+
     from . import models
+    from . import api
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -38,8 +56,22 @@ def create_app(test_config=None):
         cache.init_app(app)
         bcrypt.init_app(app)
 
+    from bikinghub.converters import (
+        UserConverter,
+        FavouriteConverter,
+        LocationConverter,
+    )
+
     app.cli.add_command(models.init_db_command)
     app.cli.add_command(models.populate_db_command)
     app.cli.add_command(models.delete_object)
+
+    app.url_map.converters["user"] = UserConverter
+    app.url_map.converters["favourite"] = FavouriteConverter
+    # app.url_map.converters["traffic"] = TrafficConverter
+    # app.url_map.converters["weather"] = WeatherConverter
+    app.url_map.converters["location"] = LocationConverter
+
+    app.register_blueprint(api.api_bp)
 
     return app
