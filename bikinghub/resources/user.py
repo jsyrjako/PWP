@@ -9,8 +9,17 @@ from ..utils import require_admin, require_authentication
 
 
 class UserCollection(Resource):
+    """
+    Resource for the user collection.
+    This Python class represents a resource for managing user collection with methods for
+    retrieving all users and adding a new user. \n Requires admin authentication.
+    """
+
     @require_admin
     def get(self):
+        """
+        Get a list of all users. Requires admin authentication.
+        """
         body = {"users": []}
         for user in User.query.all():
             body["users"].append(user.serialize())

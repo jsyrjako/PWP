@@ -1,12 +1,21 @@
+"""
+This module contains utility functions for the Bikinghub API
+- require_admin: Decorator to check if the request is made by an admin
+- require_authentication: Decorator to check if the request is made by an authenticated user
+- haversine: Calculate the great circle distance in kilometers between two points
+- find_within_distance: Find all the objects within a certain distance from a point
+- create_weather_data: Create weather data for a location
+"""
+
 import secrets
 import math
-import requests
 from datetime import datetime
+import requests
 from werkzeug.exceptions import Forbidden
 from flask import request, url_for
-from bikinghub import db, cache, api
+from bikinghub import db
 from bikinghub.models import AuthenticationKey, WeatherData
-from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL, SLIPPERY_URL, PAGE_SIZE
+from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL
 
 
 def require_admin(func):
@@ -21,12 +30,11 @@ def require_admin(func):
         if not api_key or len(api_key) == 0:
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
-        print(f"KEY HASH: {key_hash}")
         db_key = AuthenticationKey.query.filter_by(admin=True).first()
-        print(f"DB KEY: {db_key.key}")
+        if not db_key:
+            raise Forbidden
         if secrets.compare_digest(key_hash, db_key.key):
             return func(*args, **kwargs)
-        raise Forbidden
 
     return wrapper
 
@@ -46,7 +54,6 @@ def require_authentication(func):
             raise Forbidden
         if secrets.compare_digest(key_hash, db_key.key):
             return func(*args, **kwargs)
-        raise Forbidden
 
     return wrapper
 
@@ -96,22 +103,14 @@ def create_weather_data(location):
     weather_data = fetch_weather_data(latitude, longitude)
     weathers = []
 
-    forecasts = weather_data["forecasts"]
-    for forecast in forecasts["forecast"]:
-        # print(f"forecast: {forecast}")
+    for forecast in weather_data["forecasts"]["forecast"]:
         rain = forecast["Precipitation1h"]
-        # humidity = forecast["forecast"]["Humidity"] <- Not in the FMI forecast API
         temp = forecast["Temperature"]
         temp_feels = forecast["FeelsLike"]
         wind_speed = forecast["WindSpeedMS"]
         wind_direction = forecast["WindDirection"]
 
         symbol_id = int(forecast["SmartSymbol"])
-        symbols = [
-            symbol
-            for symbol in weather_data["forecasts"]["symbols"]
-            if symbol["id"] == symbol_id
-        ][0]
         symbols = next(
             (
                 symbol
@@ -127,17 +126,18 @@ def create_weather_data(location):
         weather = WeatherData(
             rain=rain,
             temperature=temp,
-            temperatureFeel=temp_feels,
-            windSpeed=wind_speed,
-            windDirection=wind_direction,
-            weatherDescription=weather_desc,
-            locationId=location["id"],
-            weatherTime=weather_time,
+            temperature_feel=temp_feels,
+            wind_speed=wind_speed,
+            wind_direction=wind_direction,
+            weather_description=weather_desc,
+            location_id=location["id"],
+            weather_time=weather_time,
         )
 
-        weathers.append(weather)
         db.session.add(weather)
         db.session.commit()
+
+        weathers.append(weather)
 
     print(f"weather: [{weathers[0]}]")
 
@@ -160,21 +160,21 @@ def fetch_weather_data(lat, lon):
     }
 
 
-def query_slipperiness(municipality: str) -> bool:
-    """
-    Query the Slipperiness API for slipperiness data
-    """
-    query = f"{SLIPPERY_URL}/warnings"
-    response = requests.get(query, timeout=5)
-    json_resp = response.json()
-    filtered_data = [
-        item
-        for item in json_resp
-        if item["city"].lower().strip() == municipality.lower().strip()
-    ]
-    sorted_data = sorted(filtered_data, key=lambda x: x["created_at"], reverse=True)
-    most_recent = sorted_data[:10]
-    return most_recent
+# def query_slipperiness(municipality: str) -> bool:
+#     """
+#     Query the Slipperiness API for slipperiness data
+#     """
+#     query = f"{SLIPPERY_URL}/warnings"
+#     response = requests.get(query, timeout=5)
+#     json_resp = response.json()
+#     filtered_data = [
+#         item
+#         for item in json_resp
+#         if item["city"].lower().strip() == municipality.lower().strip()
+#     ]
+#     sorted_data = sorted(filtered_data, key=lambda x: x["created_at"], reverse=True)
+#     most_recent = sorted_data[:10]
+#     return most_recent
 
 
 def query_fmi_forecast(district, municipality):
@@ -229,11 +229,14 @@ def query_mml_open_data_coordinates(lat, lon):
     bbox = f"{upper_left},{lower_right}"
 
     # lat 65.0219, lon 25.4827
-    # f"https://avoin-paikkatieto.maanmittauslaitos.fi/geographic-names/features/v1/collections/places/items?placeType=3010105,3020105&bbox=25.4777,65.0169,25.4877,65.0269"
+    # f"https://avoin-paikkatieto.maanmittauslaitos.fi/
+    # +geographic-names/features/v1/collections/places/items?
+    # +placeType=3010105,3020105&bbox=25.4777,65.0169,25.4877,65.0269"
 
     place_name_query = (
         f"{MML_URL}"
-        + f"/geographic-names/features/v1/collections/places/items?placeType=3010105,3020105&bbox={bbox}"
+        + "/geographic-names/features/v1/collections/places/items"
+        + f"?placeType=3010105,3020105&bbox={bbox}"
         + f"&api-key={MML_API_KEY}"
     )
     # print(f"place_name_query: {place_name_query}")
@@ -261,3 +264,13 @@ def page_key(*args, **kwargs):
     page = request.args.get("page", 0)
     request_path = url_for("api.favouritecollection", user=user)
     return request_path + f"[user_{user}_page_{page}]"
+
+
+# From course material
+def page_key_location(*args, **kwargs):
+    """
+    Generate a cache key for a page
+    """
+    page = request.args.get("page", 0)
+    request_path = url_for("api.locationcollection")
+    return request_path + f"[page_{page}]"

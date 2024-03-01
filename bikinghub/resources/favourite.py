@@ -4,13 +4,14 @@ from flask_restful import Resource
 from jsonschema import ValidationError, validate
 from werkzeug.exceptions import NotFound, UnsupportedMediaType, BadRequest
 from bikinghub.models import Favourite
-from bikinghub.constants import PAGE_SIZE
+from bikinghub.constants import PAGE_SIZE, CACHE_TIME
 from bikinghub import db, cache
 from ..utils import require_authentication, page_key
 
 
 class FavouriteCollection(Resource):
 
+    # Inspiration from course material
     def _clear_cache(self, user):
         request_path = url_for("api.favouritecollection", user=user)
         for page in range(0, PAGE_SIZE):
@@ -18,12 +19,15 @@ class FavouriteCollection(Resource):
             cache.delete(cache_key)
 
     # Lists all the user's favourites
-    @cache.cached(timeout=10000, make_cache_key=page_key, response_filter=lambda r: True)
+    # Cache from course material
+    @cache.cached(
+        timeout=CACHE_TIME, make_cache_key=page_key, response_filter=lambda r: True
+    )
     def get(self, user):
         """
         List all favorite locations for user
         """
-        print("Cache miss###############################################")
+        print("Cache miss favourite")
 
         try:
             page = int(request.args.get("page", 0))
@@ -31,9 +35,7 @@ class FavouriteCollection(Resource):
             return (400, "Invalid page value")
 
         remaining = (
-            Favourite.query.filter_by(user=user)
-            .order_by("locationId")
-            .offset(page)
+            Favourite.query.filter_by(user=user).order_by("location_id").offset(page)
         )
 
         body = {"favourites": []}
@@ -41,7 +43,7 @@ class FavouriteCollection(Resource):
         for fav in remaining.limit(PAGE_SIZE):
             body["favourites"].append(fav.serialize())
 
-        # for fav in Favourite.query.filter_by(userId=user.id).all():
+        # for fav in Favourite.query.filter_by(user_id=user.id).all():
         #    body["favourites"].append(fav.serialize())
 
         response = Response(json.dumps(body), 200, mimetype="application/json")
@@ -79,6 +81,7 @@ class FavouriteCollection(Resource):
 
 class FavouriteItem(Resource):
 
+    # Inspiration from course material
     def _clear_cache(self, user):
         request_path = url_for("api.favouritecollection", user=user)
         for page in range(0, PAGE_SIZE):
@@ -111,7 +114,7 @@ class FavouriteItem(Resource):
         # Fetch the existing favourite from db
         favourite.deserialize(request.json)
         db.session.commit()
-        
+
         self._clear_cache(user)
 
         return Response(status=204)

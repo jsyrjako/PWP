@@ -1,33 +1,41 @@
-from werkzeug.exceptions import NotFound
-from werkzeug.routing import BaseConverter
-from bikinghub.models import Location, User, Favourite
-
 """
 This file contains the converters for the URL routing.
 The converters basic structures are taken from the course material.
 """
 
+from werkzeug.exceptions import NotFound
+from werkzeug.routing import BaseConverter
+from bikinghub.models import Location, User, Favourite
+
 
 class UserConverter(BaseConverter):
+    """
+    Converts between User objects and their string representations
+    """
+
     def to_python(self, value):
         user = User.query.filter_by(name=value).first()
         if not user:
             raise NotFound
         return user
 
-    def to_url(self, user):
-        return str(user.name)
+    def to_url(self, value):
+        return str(value.name)
 
 
 class FavouriteConverter(BaseConverter):
+    """
+    Converts between Favourite objects and their string representations
+    """
+
     def to_python(self, value):
         favourite = Favourite.query.filter_by(id=value).first()
         if not favourite:
             raise NotFound
         return favourite
 
-    def to_url(self, favourite):
-        return str(favourite.id)
+    def to_url(self, value):
+        return str(value.id)
 
 
 # class TrafficConverter(BaseConverter):
@@ -53,11 +61,15 @@ class FavouriteConverter(BaseConverter):
 
 
 class LocationConverter(BaseConverter):
+    """
+    Converts between Location objects and their string representations
+    """
+
     def to_python(self, value):
         location = Location.query.filter_by(id=value).first()
         if not location:
             raise NotFound
         return location
 
-    def to_url(self, location):
-        return str(location.id)
+    def to_url(self, value):
+        return str(value.id)

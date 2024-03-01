@@ -1,17 +1,9 @@
 import json
 from flask import Response
 from flask_restful import Resource
-from bikinghub.models import (
-    WeatherData,
-)
-from ..utils import create_weather_data
 from werkzeug.exceptions import NotFound
-
-
-# Query Weather from database if recent (<2 h) and near location
-# If not, query weather from API
-# Store weather in database
-# Return weather
+from bikinghub.models import WeatherData
+from ..utils import create_weather_data
 
 
 class WeatherCollection(Resource):
@@ -43,12 +35,18 @@ class WeatherCollection(Resource):
 
 #
 #    # weather.deserialize(request.json)
-#    # weather.locationId = location.id
+#    # weather.location_id = location.id
 #    # db.session.add(weather)
 #    # db.session.commit()
 #
 #    return Response(
-#        status=201, headers={"WeatherData": url_for(weather.LocationWeather, location=location.id, weather=weather.id)}
+#        status=201,
+#        headers={"weather_data": url_for(
+#            weather.LocationWeather,
+#            location=location.id,
+#            weather=weather.id
+#            )
+#        }
 #    )
 
 
@@ -59,8 +57,8 @@ class WeatherItem(Resource):
         Get a specific weather report for a location
         """
         weather_obj = (
-            WeatherData.query.filter_by(locationId=location.id)
-            .order_by(WeatherData.weatherTime.desc())
+            WeatherData.query.filter_by(location_id=location.id)
+            .order_by(WeatherData.weather_time.desc())
             .first()
         )
         if not weather_obj:
@@ -81,19 +79,24 @@ class WeatherItem(Resource):
 #        raise BadRequest(str(e)) from e
 #    except UnsupportedMediaType as e:
 #        raise UnsupportedMediaType(str(e)) from e
-#    weather_obj = WeatherData.query.filter_by(locationId=location).first()
+#    weather_obj = WeatherData.query.filter_by(location_id=location).first()
 #    if not weather_obj:
 #        raise NotFound
 #    weather.deserialize(request.json)
 #    db.session.commit()
 #
-#    return Response(201, headers={"WeatherData": url_for(weather.LocationWeather, location=location.id, weather=weather)})
+#    return Response(
+#    201,
+#    headers={"weather_data": url_for(weather.LocationWeather,
+#    location=location.id,
+#    weather=weather)
+#    })
 #
 # def delete(self, location):
 #    """
 #    Delete a specific weather report for a location
 #    """
-#    weather_obj = WeatherData.query.filter_by(locationId=location).first()
+#    weather_obj = WeatherData.query.filter_by(location_id=location).first()
 #    if not weather_obj:
 #        raise NotFound
 #    db.session.delete(weather_obj)

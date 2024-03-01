@@ -1,3 +1,9 @@
+"""
+This file is the entry point for the application. It creates the Flask app and
+initializes the database and cache. It also registers the API blueprint and
+custom URL converters.
+"""
+
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +16,17 @@ bcrypt = Bcrypt()
 
 
 def create_app(test_config=None):
+    """
+    Create and configure the app. If a test_config is provided, it will be used
+    instead of the instance config. The config should contain
+    the following configuration:
+    - SECRET
+    - SQLALCHEMY_DATABASE_URI
+    - SQLALCHEMY_TRACK_MODIFICATIONS
+    - CACHE_TYPE
+    - CACHE_DIR
+    """
+
     from . import models
     from . import api
 

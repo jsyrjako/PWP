@@ -5,12 +5,18 @@ from bikinghub.models import TrafficData
 
 
 class TrafficCollection(Resource):
+    """
+    Not used
+    """
 
     def get(self):
         pass
 
 
 class TrafficItem(Resource):
+    """
+    Not used
+    """
 
     def get(self, traffic):
         traffic_obj = TrafficData.query.get(traffic).first()
@@ -21,6 +27,9 @@ class TrafficItem(Resource):
 
 
 class TrafficLocation(Resource):
+    """
+    Not used
+    """
 
     def put(self, traffic, location):
         """

@@ -1,3 +1,8 @@
+"""
+This module is used to define the API endpoints
+and the resources that are used to handle the requests.
+"""
+
 from flask import Blueprint
 from flask_restful import Api
 from bikinghub.resources import location, user, weather, favourite

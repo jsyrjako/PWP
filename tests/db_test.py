@@ -1,3 +1,8 @@
+"""
+This module contains tests that check the creation, deletion, 
+and validation of database models User, Favourite, Location, and WeatherData.
+"""
+
 import pytest
 from sqlalchemy.exc import IntegrityError, StatementError
 from conftest import populate_db
@@ -30,7 +35,7 @@ def test_create_instances(client):
         assert 3 == User.query.count()
         assert AuthenticationKey.query.count() == 3
         assert Location.query.count() == 4
-        assert Favourite.query.count() == 5
+        assert Favourite.query.count() == 4
         assert WeatherData.query.count() == 3
         db_user = User.query.first()
         db_auth_key = AuthenticationKey.query.first()
@@ -58,8 +63,8 @@ def test_delete_user(client):
         db.session.delete(user)
         db.session.commit()
         assert User.query.filter_by(name="user1").first() is None
-        assert Favourite.query.filter_by(userId=user.id).first() is None
-        assert AuthenticationKey.query.filter_by(userId=user.id).first() is None
+        assert Favourite.query.filter_by(user_id=user.id).first() is None
+        assert AuthenticationKey.query.filter_by(user_id=user.id).first() is None
 
 
 @pytest.mark.usefixtures("client")
@@ -70,7 +75,7 @@ def test_delete_favourite(client):
     with client.app_context():
         populate_db(db)
         user = User.query.filter_by(name="user1").first()
-        favourite = Favourite.query.filter_by(userId=user.id).first()
+        favourite = Favourite.query.filter_by(user_id=user.id).first()
         db.session.delete(favourite)
         db.session.commit()
         assert Favourite.query.filter_by(id=favourite.id).first() is None
@@ -87,8 +92,8 @@ def test_delete_location(client):
         db.session.delete(location)
         db.session.commit()
         assert Location.query.filter_by(name="location1").first() is None
-        assert Favourite.query.filter_by(locationId=location.id).first() is None
-        assert WeatherData.query.filter_by(locationId=location.id).first() is None
+        assert Favourite.query.filter_by(location_id=location.id).first() is None
+        assert WeatherData.query.filter_by(location_id=location.id).first() is None
 
 
 @pytest.mark.usefixtures("client")
@@ -98,10 +103,10 @@ def test_delete_weather_data(client):
     """
     with client.app_context():
         populate_db(db)
-        weather_data = WeatherData.query.filter_by(locationId=1).first()
+        weather_data = WeatherData.query.filter_by(location_id=1).first()
         db.session.delete(weather_data)
         db.session.commit()
-        assert WeatherData.query.filter_by(locationId=1).first() is None
+        assert WeatherData.query.filter_by(location_id=1).first() is None
 
 
 def test_user_columns(client):
@@ -184,7 +189,7 @@ def test_weather_data_columns(client):
 
         # Attempt to create weather data with non-numeric wind speed
         weather_data = WeatherData.query.filter_by(id=3).first()
-        weather_data.windSpeed = str(weather_data.windSpeed) + "m/s"
+        weather_data.wind_speed = str(weather_data.wind_speed) + "m/s"
         db.session.add(weather_data)
         with pytest.raises(StatementError):
             db.session.commit()
