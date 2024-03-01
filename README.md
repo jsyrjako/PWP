@@ -66,6 +66,14 @@ flask --app bikinghub populate-db
 
 ## Run the Project
 
+Add MML_API_KEY to the [constants.py](./bikinghub/constants.py) file. MML_API_KEY is required to fetch the data from the Maanmittauslaitos API.
+
+```python
+MML_API_KEY = ""
+```
+
+Run the project with the following command:
+
 ```bash
 flask --app bikinghub run
 ```
@@ -76,3 +84,51 @@ or with docker
 docker-compose up
 ```
 
+## Testing
+
+### Run tests
+
+Run all tests
+
+```bash
+pytest
+```
+
+Run tests with coverage
+
+```bash
+pytest --cov-report term-missing --cov=bikinghub
+```
+
+
+## Development
+
+### Linting
+
+Using Pylint linter
+
+```bash
+pylint bikinghub
+```
+
+### Formatting
+
+Using Black formatter
+
+```bash
+black .
+```
+
+### API Keys for different services
+
+#### Creating and managing API keys for Maanmittauslaitos
+
+Creating and managing API keys
+You can create an API key in the Maanmittauslaitoksen OmaTili-service as follows:
+
+1. Register for [OmaTili](https://omatili.maanmittauslaitos.fi/user/new/avoimet-rajapintapalvelut).
+2. Log in with the user name you have registered.
+
+After registering and logging in, you can:
+- create an API key by registering with your personal account.
+- edit your details or delete your username.

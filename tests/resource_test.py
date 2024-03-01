@@ -481,7 +481,7 @@ class TestWeatherItem:
             test_client = client.test_client()
 
             # Error if no API key
-            assert MML_API_KEY is not None
+            assert MML_API_KEY is not None and MML_API_KEY != ""
 
             # Assert 404 for empty database
             resp = test_client.get(self.URL)
