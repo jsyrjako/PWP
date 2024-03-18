@@ -6,7 +6,9 @@ from werkzeug.exceptions import UnsupportedMediaType, BadRequest
 from bikinghub import db, cache
 from bikinghub.models import Location
 from bikinghub.constants import PAGE_SIZE, CACHE_TIME
-from ..utils import find_within_distance, require_admin, page_key_location
+from ..utils import find_within_distance, require_admin, page_key_location, BodyBuilder
+from bikinghub.constants import LINK_RELATIONS_URL, LOCATION_PROFILE, MASON
+from flasgger import swag_from
 
 
 class LocationCollection(Resource):
@@ -34,23 +36,24 @@ class LocationCollection(Resource):
         """
         print("Cache miss location")
 
-        try:
-            page = int(request.args.get("page", 0))
-        except ValueError:
-            return (400, "Invalid page value")
+        body = BodyBuilder()
+        body.add_namespace("locations", LINK_RELATIONS_URL)
+        body.add_control("self", url_for("api.locationcollection"))
+        body.add_control_add_location()
+        body["items"] = []
 
-        all_locations = Location.query.order_by(Location.id).offset(page)
+        # Serialize each location and add it to the response body
+        for location in Location.query.all():
+            item = BodyBuilder(
+                latitude=location.latitude,
+                longitude=location.longitude,
+                name=location.name,
+            )
+            item.add_control("self", url_for("api.locationitem", location=location.id))
+            item.add_control("profile", LOCATION_PROFILE)
+            body["items"].append(item)
 
-        body = {"locations": []}
-
-        for location in all_locations.limit(PAGE_SIZE):
-            body["locations"].append(location.serialize())
-
-        response = Response(json.dumps(body), status=200, mimetype="application/json")
-        if len(body["locations"]) == PAGE_SIZE:
-            cache.set(page_key_location(), response, timeout=None)
-
-        return response
+        return Response(json.dumps(body), status=200, mimetype="application/json")
 
     def post(self):
         """
@@ -97,11 +100,20 @@ class LocationItem(Resource):
             cache.delete(cache_key)
 
     def get(self, location):
-        location_doc = location.serialize()
-        print("location_doc", location_doc)
-        return Response(
-            json.dumps(location_doc), status=200, mimetype="application/json"
-        )
+        """
+        GET method for the location item
+        """
+        body = BodyBuilder()
+        body.add_namespace("locations", LINK_RELATIONS_URL)
+        body.add_control("self", url_for("api.locationitem", location=location))
+        body.add_control("profile", LOCATION_PROFILE)
+        body.add_control("collection", url_for("api.locationcollection"))
+        body.add_control_location_delete(location)
+        body.add_control_location_edit(location)
+        body.add_control_weather_all()
+
+        body["item"] = location.serialize()
+        return Response(json.dumps(body), 200, mimetype=MASON)
 
     def put(self, location):
         """

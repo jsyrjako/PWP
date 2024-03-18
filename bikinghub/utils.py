@@ -8,14 +8,253 @@ This module contains utility functions for the Bikinghub API
 """
 
 import secrets
+from functools import wraps
 import math
 from datetime import datetime
 import requests
 from werkzeug.exceptions import Forbidden
 from flask import request, url_for
 from bikinghub import db
-from bikinghub.models import AuthenticationKey, WeatherData
+from bikinghub.models import AuthenticationKey, WeatherData, User, Location, Favourite
 from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL
+
+
+class MasonBuilder(dict):
+    """
+    Taken from course materials
+
+    ---
+
+    A convenience class for managing dictionaries that represent Mason
+    objects. It provides nice shorthands for inserting some of the more
+    elements into the object but mostly is just a parent for the much more
+    useful subclass defined next. This class is generic in the sense that it
+    does not contain any application specific implementation details.
+    """
+
+    def add_error(self, title, details):
+        """
+        Adds an error element to the object. Should only be used for the root
+        object, and only in error scenarios.
+
+        Note: Mason allows more than one string in the @messages property (it's
+        in fact an array). However we are being lazy and supporting just one
+        message.
+
+        : param str title: Short title for the error
+        : param str details: Longer human-readable description
+        """
+
+        self["@error"] = {
+            "@message": title,
+            "@messages": [details],
+        }
+
+    def add_namespace(self, ns, uri):
+        """
+        Adds a namespace element to the object. A namespace defines where our
+        link relations are coming from. The URI can be an address where
+        developers can find information about our link relations.
+
+        : param str ns: the namespace prefix
+        : param str uri: the identifier URI of the namespace
+        """
+
+        if "@namespaces" not in self:
+            self["@namespaces"] = {}
+
+        self["@namespaces"][ns] = {"name": uri}
+
+    def add_control(self, ctrl_name, href, **kwargs):
+        """
+        Adds a control property to an object. Also adds the @controls property
+        if it doesn't exist on the object yet. Technically only certain
+        properties are allowed for kwargs but again we're being lazy and don't
+        perform any checking.
+
+        The allowed properties can be found from here
+        https://github.com/JornWildt/Mason/blob/master/Documentation/Mason-draft-2.md
+
+        : param str ctrl_name: name of the control (including namespace if any)
+        : param str href: target URI for the control
+        """
+
+        if "@controls" not in self:
+            self["@controls"] = {}
+
+        self["@controls"][ctrl_name] = kwargs
+        self["@controls"][ctrl_name]["href"] = href
+
+
+class BodyBuilder(MasonBuilder):
+
+    # region User
+    def add_control_users_all(self):
+        """
+        Adds a control to the object for getting all users
+        """
+        self.add_control(
+            "users:users-all",
+            href=url_for("api.usercollection"),
+            method="GET",
+            title="Get all users",
+        )
+
+    def add_control_user_add(self):
+        """
+        Adds a control to the object for adding a new user
+        """
+        self.add_control(
+            "users:user-add",
+            href=url_for("api.usercollection"),
+            method="POST",
+            title="Add a new user",
+            encoding="json",
+            schema=User.json_schema(),
+        )
+
+    def add_control_user_delete(self, user):
+        """
+        Adds a control to the object for deleting a user
+        """
+        self.add_control(
+            "users:user-delete",
+            href=url_for("api.useritem", user=user),
+            method="DELETE",
+            title="Delete a user",
+        )
+
+    def add_control_user_edit(self, user):
+        """
+        Adds a control to the object for editing a user
+        """
+        self.add_control(
+            "users:user-edit",
+            href=url_for("api.useritem", user=user),
+            method="PUT",
+            title="Edit a user",
+            encoding="json",
+            schema=User.json_schema(),
+        )
+
+    # endregion
+
+    # region Location
+    def add_control_locations_all(self):
+        """
+        Adds a control to the object for getting all locations
+        """
+        self.add_control(
+            "locations:locations-all",
+            href=url_for("api.locationcollection"),
+            method="GET",
+            title="Get all locations",
+        )
+
+    def add_control_add_location(self):
+        """
+        Adds a control to the object for adding a new location
+        """
+        self.add_control(
+            "locations:location-add",
+            href=url_for("api.locationcollection"),
+            method="POST",
+            title="Add a new location",
+            encoding="json",
+            schema=Location.json_schema(),
+        )
+
+    def add_control_location_delete(self, location):
+        """
+        Adds a control to the object for deleting a location
+        """
+        self.add_control(
+            "locations:location-delete",
+            href=url_for("api.locationitem", location=location),
+            method="DELETE",
+            title="Delete a location",
+        )
+
+    def add_control_location_edit(self, location):
+        """
+        Adds a control to the object for editing a location
+        """
+        self.add_control(
+            "locations:location-edit",
+            href=url_for("api.locationitem", location=location),
+            method="PUT",
+            title="Edit a location",
+            encoding="json",
+            schema=Location.json_schema(),
+        )
+
+    # endregion
+
+    # region Weather
+    def add_control_weather_all(self):
+        """
+        Adds a control to the object for getting all weather data
+        """
+        self.add_control(
+            "weather:weather-all",
+            href=url_for("api.weathercollection"),
+            method="GET",
+            title="Get all weather data",
+        )
+
+    # endregion
+
+    # region Favorite
+    def add_control_favorites_all(self, user):
+        """
+        Adds a control to the object for getting all favorite locations
+        """
+        self.add_control(
+            "favorites:favorites-all",
+            href=url_for("api.favouritecollection", user=user),
+            method="GET",
+            title="Get all favorite locations",
+        )
+
+    def add_control_favorite_add(self, user):
+        """
+        Adds a control to the object for adding a new favorite location
+        """
+        self.add_control(
+            "favorites:favorite-add",
+            href=url_for("api.favouritecollection", user=user),
+            method="POST",
+            title="Add a new favorite location",
+            encoding="json",
+            schema=Favourite.json_schema(),
+        )
+
+    def add_control_favorite_delete(self, user, favorite):
+        """
+        Adds a control to the object for deleting a favorite location
+        """
+        self.add_control(
+            "favorites:favorite-delete",
+            href=url_for("api.favouriteitem", user=user, favorite=favorite),
+            method="DELETE",
+            title="Delete a favorite location",
+        )
+
+    def add_control_favorite_edit(self, user, favorite):
+        """
+        Adds a control to the object for editing a favorite location
+        """
+        self.add_control(
+            "favorites:favorite-edit",
+            href=url_for("api.favouriteitem", user=user, favorite=favorite),
+            method="PUT",
+            title="Edit a favorite location",
+            encoding="json",
+            schema=Favourite.json_schema(),
+        )
+
+
+# endregion
 
 
 def require_admin(func):
@@ -23,6 +262,7 @@ def require_admin(func):
     Check if the request is made by an admin
     """
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
         print("ADMIN CHECK")
         api_key = request.headers.get("Bikinghub-Api-Key", "").strip()
@@ -44,6 +284,7 @@ def require_authentication(func):
     Check if the request is made by an authenticated user
     """
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
         api_key = request.headers.get("Bikinghub-Api-Key", "").strip()
         if not api_key or len(api_key) == 0:

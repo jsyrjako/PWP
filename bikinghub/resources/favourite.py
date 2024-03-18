@@ -4,9 +4,15 @@ from flask_restful import Resource
 from jsonschema import ValidationError, validate
 from werkzeug.exceptions import NotFound, UnsupportedMediaType, BadRequest
 from bikinghub.models import Favourite
-from bikinghub.constants import PAGE_SIZE, CACHE_TIME
+from bikinghub.constants import (
+    PAGE_SIZE,
+    CACHE_TIME,
+    LINK_RELATIONS_URL,
+    FAVORITE_PROFILE,
+    MASON,
+)
 from bikinghub import db, cache
-from ..utils import require_authentication, page_key
+from ..utils import require_authentication, page_key, BodyBuilder
 
 
 class FavouriteCollection(Resource):
@@ -38,16 +44,21 @@ class FavouriteCollection(Resource):
             Favourite.query.filter_by(user=user).order_by("location_id").offset(page)
         )
 
-        body = {"favourites": []}
-
+        body = BodyBuilder()
+        body.add_namespace("favourites", LINK_RELATIONS_URL)
+        body.add_control("self", url_for("api.favouritecollection", user=user))
+        body.add_control_favorite_add(user)
+        body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
-            body["favourites"].append(fav.serialize())
+            item = BodyBuilder()
+            item.add_control(
+                "self", url_for("api.favouriteitem", user=user, favourite=fav.id)
+            )
+            item.add_control("profile", FAVORITE_PROFILE)
+            body["items"].append(item.serialize())
 
-        # for fav in Favourite.query.filter_by(user_id=user.id).all():
-        #    body["favourites"].append(fav.serialize())
-
-        response = Response(json.dumps(body), 200, mimetype="application/json")
-        if len(body["favourites"]) == PAGE_SIZE:
+        response = Response(json.dumps(body), 200, mimetype=MASON)
+        if len(body["items"]) == PAGE_SIZE:
             cache.set(page_key(), response, timeout=None)
 
         return response
@@ -94,8 +105,23 @@ class FavouriteItem(Resource):
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
             raise NotFound
-        body = favourite.serialize()
-        return Response(json.dumps(body), status=200, mimetype="application/json")
+        body = BodyBuilder()
+        body.add_namespace("favourites", LINK_RELATIONS_URL)
+        body.add_control(
+            "self", url_for("api.favouriteitem", user=user, favourite=favourite.id)
+        )
+        body.add_control("profile", FAVORITE_PROFILE)
+        body.add_control("collection", url_for("api.favouritecollection", user=user))
+        body.add_control(
+            "edit", url_for("api.favouriteitem", user=user, favourite=favourite.id)
+        )
+        body.add_control(
+            "delete", url_for("api.favouriteitem", user=user, favourite=favourite.id)
+        )
+        body.add_control_locations_all()
+
+        body["item"] = favourite.serialize()
+        return Response(json.dumps(body), status=200, mimetype=MASON)
 
     def put(self, user, favourite):
         """

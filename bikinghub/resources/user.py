@@ -5,7 +5,8 @@ from jsonschema import ValidationError, validate
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType, Conflict
 from bikinghub import db
 from bikinghub.models import User
-from ..utils import require_admin, require_authentication
+from ..utils import require_admin, require_authentication, BodyBuilder
+from bikinghub.constants import LINK_RELATIONS_URL, USER_PROFILE, MASON
 
 
 class UserCollection(Resource):
@@ -14,17 +15,22 @@ class UserCollection(Resource):
     This Python class represents a resource for managing user collection with methods for
     retrieving all users and adding a new user. \n Requires admin authentication.
     """
-
     @require_admin
     def get(self):
         """
         Get a list of all users. Requires admin authentication.
         """
-        body = {"users": []}
+        body = BodyBuilder()
+        body.add_namespace("users", LINK_RELATIONS_URL)
+        body.add_control("self", url_for("api.usercollection"))
+        body.add_control_user_add()
+        body["items"] = []
         for user in User.query.all():
-            body["users"].append(user.serialize())
-
-        return Response(json.dumps(body), 200, mimetype="application/json")
+            item = BodyBuilder(name=user.name, password=user.password)
+            item.add_control("self", url_for("api.useritem", user=user))
+            item.add_control("profile", USER_PROFILE)
+            body["items"].append(item)
+        return Response(json.dumps(body), 200, mimetype=MASON)
 
     @require_admin
     def post(self):
@@ -54,8 +60,18 @@ class UserItem(Resource):
         """
         GET method for the user item.
         """
-        body = user.serialize()
-        return Response(json.dumps(body), 200, mimetype="application/json")
+        body = BodyBuilder()
+        body.add_namespace("users", LINK_RELATIONS_URL)
+        body.add_control("self", url_for("api.useritem", user=user))
+        body.add_control("profile", USER_PROFILE)
+        body.add_control("collection", url_for("api.usercollection"))
+        body.add_control_user_edit(user)
+        body.add_control_user_delete(user)
+        body.add_control_favorites_all(user)
+        body.add_control_locations_all()
+
+        body["item"] = user.serialize()
+        return Response(json.dumps(body), 200, mimetype=MASON)
 
     @require_authentication
     def put(self, user):
@@ -77,7 +93,7 @@ class UserItem(Resource):
         return Response(
             status=204, headers={"User": url_for("api.useritem", user=user)}
         )
-
+    
     @require_authentication
     def delete(self, user):
         """

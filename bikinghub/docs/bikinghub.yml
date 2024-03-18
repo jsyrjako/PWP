@@ -1,0 +1,62 @@
+
+openapi: '3.0.3'
+info:
+  title: BikingHub API
+  description: |
+    This is an API for BikingHub, a social network for bikers.
+    It stores relevant information for users, such as weather and traffic
+  version: 0.0.1
+  contact:
+    name: BikingHub Support
+    email: biking.support
+    url: 'https://bikinghub.org'
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+
+servers:
+  - url: 'http://localhost:5000'
+    description: The production server
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The user ID.
+        name:
+          type: string
+          description: The user name.
+        # Add other properties here
+      required:
+        - id
+        - name
+        # Add other required properties here
+        
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The location ID.
+        name:
+          type: string
+          description: The location name.
+        # Add other properties here
+      required:
+        - id
+        - name
+        # Add other required properties here
+
+    Users:
+      type: array
+      items:
+        $ref: '#/components/schemas/User'
+        
+  securitySchemes:
+    BikinghubApiKey:
+      type: apiKey
+      in: header
+      name: Bikinghub-Api-Key

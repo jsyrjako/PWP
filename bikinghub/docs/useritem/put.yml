@@ -1,0 +1,24 @@
+tags:
+  - UserItem
+description: This endpoint updates a user item identified by the user ID. Requires API authentication.
+summary: Update a user item
+parameters:
+  - in: path
+    name: userId
+    required: true
+    description: The ID of the user.
+    schema:
+      type: string
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/User'
+responses:
+  '204':
+    description: The user item was successfully updated. The `User` header contains the URL of the updated user.
+  '400':
+    description: The request body is invalid.
+  '409':
+    description: A user with the same name already exists.

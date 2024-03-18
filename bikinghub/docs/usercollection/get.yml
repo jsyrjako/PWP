@@ -1,0 +1,17 @@
+STRINGIT NÄYTTÄÄ HYVÄLTÄ!
+---
+
+tags:
+  - Users
+summary: Get all users
+description: Get all users
+responses:
+  '200':
+    description: Successful operation
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Users'
+security:
+  - BikinghubApiKey: []
+

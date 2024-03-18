@@ -1,0 +1,22 @@
+tags:
+  - Location
+summary: Create a new location
+description: This endpoint creates a new location.
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Location'
+responses:
+  '201':
+    description: The location was successfully created. The `Location` header contains the URL of the new location.
+    headers:
+      Location:
+        schema:
+          type: string
+        description: The URL of the new location.
+  '400':
+    description: The request body is invalid.
+  '409':
+    description: The location already exists.

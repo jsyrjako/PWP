@@ -9,6 +9,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_bcrypt import Bcrypt
+from flasgger import Swagger
+from bikinghub.constants import LINK_RELATIONS_URL
 
 cache = Cache()
 db = SQLAlchemy()
@@ -45,6 +47,25 @@ def create_app(test_config=None):
     else:
         app.config.from_mapping(test_config)
 
+    # merge swagger docs
+
+    doc_dir = os.path.join(os.getcwd(), "bikinghub", "docs", "")
+    doc_dir2 = "./bikinghub/docs/"
+    print(f"doc_dir: {doc_dir}")
+    print(f"doc_dir2: {doc_dir2}")
+
+    app.config["SWAGGER"] = {
+        "title": "Sensorhub API",
+        "openapi": "3.0.3",
+        "doc_dir": doc_dir2,
+    }
+
+    swagger = Swagger(
+        app,
+        template_file=os.path.join(os.getcwd(), "bikinghub", "docs", "bikinghub.yml"),
+        parse=True,
+    )
+
     try:
         os.makedirs(app.instance_path)
     except OSError:
@@ -73,5 +94,17 @@ def create_app(test_config=None):
     app.url_map.converters["location"] = LocationConverter
 
     app.register_blueprint(api.api_bp)
+
+    @app.route(LINK_RELATIONS_URL)
+    def send_link_relations():
+        return "link relations"
+
+    @app.route("/bikinhub/profiles/<profile>/")
+    def send_profile(profile):
+        return "you requests {} profile".format(profile)
+
+    # @app.route("/admin/")
+    # def admin_site():
+    #    return app.send_static_file("html/admin.html")
 
     return app

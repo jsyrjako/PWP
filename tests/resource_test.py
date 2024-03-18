@@ -613,7 +613,7 @@ class TestFavouriteItem:
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == "application/vnd.mason+json"
             data = json.loads(resp.data)
             assert len(data) > 0
 
