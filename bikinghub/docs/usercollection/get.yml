@@ -1,8 +1,6 @@
-STRINGIT NÄYTTÄÄ HYVÄLTÄ!
 ---
-
 tags:
-  - Users
+  - UserCollection
 summary: Get all users
 description: Get all users
 responses:

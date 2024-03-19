@@ -1,0 +1,27 @@
+summary: Create a new user
+description: This method creates a new user. Only an admin can create a new user.
+tags:
+  - UserCollection
+requestBody:
+  description: User object that needs to be added
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/CreateUser'
+  required: true
+responses:
+  '201':
+    description: User created successfully
+    headers:
+      User:
+        schema:
+          type: string
+        description: URL of the created user
+  '400':
+    description: Invalid input
+  '409':
+    description: User already exists
+  '415':
+    description: Unsupported media type
+security:
+  - BikinghubApiKey: []

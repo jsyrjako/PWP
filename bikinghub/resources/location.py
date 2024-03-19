@@ -2,12 +2,18 @@ import json
 from flask import Response, request, url_for
 from flask_restful import Resource
 from jsonschema import ValidationError, validate
-from werkzeug.exceptions import UnsupportedMediaType, BadRequest
+from werkzeug.exceptions import UnsupportedMediaType
 from bikinghub import db, cache
 from bikinghub.models import Location
 from bikinghub.constants import PAGE_SIZE, CACHE_TIME
-from ..utils import find_within_distance, require_admin, page_key_location, BodyBuilder
-from bikinghub.constants import LINK_RELATIONS_URL, LOCATION_PROFILE, MASON
+from ..utils import (
+    create_error_response,
+    find_within_distance,
+    require_admin,
+    page_key_location,
+    BodyBuilder,
+)
+from bikinghub.constants import LINK_RELATIONS_URL, LOCATION_PROFILE, MASON, NAMESPACE
 from flasgger import swag_from
 
 
@@ -37,7 +43,7 @@ class LocationCollection(Resource):
         print("Cache miss location")
 
         body = BodyBuilder()
-        body.add_namespace("locations", LINK_RELATIONS_URL)
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self", url_for("api.locationcollection"))
         body.add_control_add_location()
         body["items"] = []
@@ -49,7 +55,7 @@ class LocationCollection(Resource):
                 longitude=location.longitude,
                 name=location.name,
             )
-            item.add_control("self", url_for("api.locationitem", location=location.id))
+            item.add_control("self", url_for("api.locationitem", location=location))
             item.add_control("profile", LOCATION_PROFILE)
             body["items"].append(item)
 
@@ -59,12 +65,15 @@ class LocationCollection(Resource):
         """
         Create a new location
         """
+        print(f"LocationCollection.post()")
+        print(f"request.json: {request.json}")
         try:
             validate(request.json, Location.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            print(f"LocationCollection.post() ValidationError: {e}")
+            return create_error_response(400, str(e))
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e)) from e
+            return create_error_response(415, str(e))
 
         lat = request.json.get("latitude")
         lon = request.json.get("longitude")
@@ -104,7 +113,7 @@ class LocationItem(Resource):
         GET method for the location item
         """
         body = BodyBuilder()
-        body.add_namespace("locations", LINK_RELATIONS_URL)
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self", url_for("api.locationitem", location=location))
         body.add_control("profile", LOCATION_PROFILE)
         body.add_control("collection", url_for("api.locationcollection"))
@@ -122,9 +131,9 @@ class LocationItem(Resource):
         try:
             validate(request.json, Location.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            return create_error_response(400, str(e))
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e)) from e
+            return create_error_response(415, str(e))
 
         location.deserialize(request.json)
         db.session.commit()

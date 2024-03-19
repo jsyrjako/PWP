@@ -7,16 +7,32 @@ This module contains utility functions for the Bikinghub API
 - create_weather_data: Create weather data for a location
 """
 
+import json
 import secrets
 from functools import wraps
 import math
 from datetime import datetime
 import requests
 from werkzeug.exceptions import Forbidden
-from flask import request, url_for
+from flask import request, url_for, Response
 from bikinghub import db
 from bikinghub.models import AuthenticationKey, WeatherData, User, Location, Favourite
-from bikinghub.constants import MML_URL, MML_API_KEY, FMI_FORECAST_URL
+from bikinghub.constants import (
+    MML_URL,
+    MML_API_KEY,
+    FMI_FORECAST_URL,
+    NAMESPACE,
+    ERROR_PROFILE,
+    MASON,
+)
+
+
+def create_error_response(status_code, title, message=None):
+    resource_url = request.path
+    body = MasonBuilder(resource_url=resource_url)
+    body.add_error(title, message)
+    body.add_control("profile", href=ERROR_PROFILE)
+    return Response(json.dumps(body), status_code, mimetype=MASON)
 
 
 class MasonBuilder(dict):
@@ -94,7 +110,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for getting all users
         """
         self.add_control(
-            "users:users-all",
+            f"{NAMESPACE}:users-all",
             href=url_for("api.usercollection"),
             method="GET",
             title="Get all users",
@@ -105,7 +121,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for adding a new user
         """
         self.add_control(
-            "users:user-add",
+            f"{NAMESPACE}:user-add",
             href=url_for("api.usercollection"),
             method="POST",
             title="Add a new user",
@@ -118,7 +134,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for deleting a user
         """
         self.add_control(
-            "users:user-delete",
+            f"{NAMESPACE}:user-delete",
             href=url_for("api.useritem", user=user),
             method="DELETE",
             title="Delete a user",
@@ -129,7 +145,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for editing a user
         """
         self.add_control(
-            "users:user-edit",
+            f"{NAMESPACE}:user-edit",
             href=url_for("api.useritem", user=user),
             method="PUT",
             title="Edit a user",
@@ -145,7 +161,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for getting all locations
         """
         self.add_control(
-            "locations:locations-all",
+            f"{NAMESPACE}:locations-all",
             href=url_for("api.locationcollection"),
             method="GET",
             title="Get all locations",
@@ -156,7 +172,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for adding a new location
         """
         self.add_control(
-            "locations:location-add",
+            f"{NAMESPACE}:location-add",
             href=url_for("api.locationcollection"),
             method="POST",
             title="Add a new location",
@@ -169,7 +185,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for deleting a location
         """
         self.add_control(
-            "locations:location-delete",
+            f"{NAMESPACE}:location-delete",
             href=url_for("api.locationitem", location=location),
             method="DELETE",
             title="Delete a location",
@@ -180,7 +196,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for editing a location
         """
         self.add_control(
-            "locations:location-edit",
+            f"{NAMESPACE}:location-edit",
             href=url_for("api.locationitem", location=location),
             method="PUT",
             title="Edit a location",
@@ -196,7 +212,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for getting all weather data
         """
         self.add_control(
-            "weather:weather-all",
+            f"{NAMESPACE}:weather-all",
             href=url_for("api.weathercollection"),
             method="GET",
             title="Get all weather data",
@@ -205,23 +221,23 @@ class BodyBuilder(MasonBuilder):
     # endregion
 
     # region Favorite
-    def add_control_favorites_all(self, user):
+    def add_control_favourites_all(self, user):
         """
         Adds a control to the object for getting all favorite locations
         """
         self.add_control(
-            "favorites:favorites-all",
+            f"{NAMESPACE}:favourites-all",
             href=url_for("api.favouritecollection", user=user),
             method="GET",
             title="Get all favorite locations",
         )
 
-    def add_control_favorite_add(self, user):
+    def add_control_favourite_add(self, user):
         """
         Adds a control to the object for adding a new favorite location
         """
         self.add_control(
-            "favorites:favorite-add",
+            f"{NAMESPACE}:favourite-add",
             href=url_for("api.favouritecollection", user=user),
             method="POST",
             title="Add a new favorite location",
@@ -234,7 +250,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for deleting a favorite location
         """
         self.add_control(
-            "favorites:favorite-delete",
+            f"{NAMESPACE}:favorite-delete",
             href=url_for("api.favouriteitem", user=user, favorite=favorite),
             method="DELETE",
             title="Delete a favorite location",
@@ -245,7 +261,7 @@ class BodyBuilder(MasonBuilder):
         Adds a control to the object for editing a favorite location
         """
         self.add_control(
-            "favorites:favorite-edit",
+            f"{NAMESPACE}:favorite-edit",
             href=url_for("api.favouriteitem", user=user, favorite=favorite),
             method="PUT",
             title="Edit a favorite location",
@@ -339,8 +355,8 @@ def find_within_distance(lat, lon, distance, all_locations):
 
 
 def create_weather_data(location):
-    latitude = location["latitude"]
-    longitude = location["longitude"]
+    latitude = location.latitude
+    longitude = location.longitude
     weather_data = fetch_weather_data(latitude, longitude)
     weathers = []
 
@@ -371,7 +387,7 @@ def create_weather_data(location):
             wind_speed=wind_speed,
             wind_direction=wind_direction,
             weather_description=weather_desc,
-            location_id=location["id"],
+            location_id=location.id,
             weather_time=weather_time,
         )
 

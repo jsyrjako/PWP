@@ -1,7 +1,7 @@
 from flask import Response
 from flask_restful import Resource
-from werkzeug.exceptions import NotFound
 from bikinghub.models import TrafficData
+from bikinghub.utils import create_error_response
 
 
 class TrafficCollection(Resource):
@@ -21,7 +21,7 @@ class TrafficItem(Resource):
     def get(self, traffic):
         traffic_obj = TrafficData.query.get(traffic).first()
         if not traffic_obj:
-            raise NotFound
+            return create_error_response(404, "Not Found", "Traffic report not found")
         traffic_doc = traffic_obj.serialize()
         return Response(traffic_doc, 200, mimetype="application/json")
 

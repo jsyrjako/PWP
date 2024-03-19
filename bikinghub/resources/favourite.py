@@ -2,7 +2,7 @@ import json
 from flask import Response, request, url_for
 from flask_restful import Resource
 from jsonschema import ValidationError, validate
-from werkzeug.exceptions import NotFound, UnsupportedMediaType, BadRequest
+from werkzeug.exceptions import UnsupportedMediaType
 from bikinghub.models import Favourite
 from bikinghub.constants import (
     PAGE_SIZE,
@@ -10,9 +10,10 @@ from bikinghub.constants import (
     LINK_RELATIONS_URL,
     FAVORITE_PROFILE,
     MASON,
+    NAMESPACE,
 )
 from bikinghub import db, cache
-from ..utils import require_authentication, page_key, BodyBuilder
+from ..utils import create_error_response, require_authentication, page_key, BodyBuilder
 
 
 class FavouriteCollection(Resource):
@@ -38,24 +39,24 @@ class FavouriteCollection(Resource):
         try:
             page = int(request.args.get("page", 0))
         except ValueError:
-            return (400, "Invalid page value")
+            return create_error_response(400, "Invalid page number")
 
         remaining = (
             Favourite.query.filter_by(user=user).order_by("location_id").offset(page)
         )
 
         body = BodyBuilder()
-        body.add_namespace("favourites", LINK_RELATIONS_URL)
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self", url_for("api.favouritecollection", user=user))
-        body.add_control_favorite_add(user)
+        body.add_control_favourite_add(user)
         body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
             item = BodyBuilder()
             item.add_control(
-                "self", url_for("api.favouriteitem", user=user, favourite=fav.id)
+                "self", url_for("api.favouriteitem", user=user, favourite=fav)
             )
             item.add_control("profile", FAVORITE_PROFILE)
-            body["items"].append(item.serialize())
+            body["items"].append(item)
 
         response = Response(json.dumps(body), 200, mimetype=MASON)
         if len(body["items"]) == PAGE_SIZE:
@@ -70,9 +71,9 @@ class FavouriteCollection(Resource):
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            return create_error_response(400, str(e))
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e)) from e
+            return create_error_response(415, str(e))
 
         favourite = Favourite()
         favourite.deserialize(request.json)
@@ -104,19 +105,19 @@ class FavouriteItem(Resource):
         Get user's favorite location
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
-            raise NotFound
+            return create_error_response(404, "Favorite not found")
         body = BodyBuilder()
-        body.add_namespace("favourites", LINK_RELATIONS_URL)
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
         body.add_control(
-            "self", url_for("api.favouriteitem", user=user, favourite=favourite.id)
+            "self", url_for("api.favouriteitem", user=user, favourite=favourite)
         )
         body.add_control("profile", FAVORITE_PROFILE)
         body.add_control("collection", url_for("api.favouritecollection", user=user))
         body.add_control(
-            "edit", url_for("api.favouriteitem", user=user, favourite=favourite.id)
+            "edit", url_for("api.favouriteitem", user=user, favourite=favourite)
         )
         body.add_control(
-            "delete", url_for("api.favouriteitem", user=user, favourite=favourite.id)
+            "delete", url_for("api.favouriteitem", user=user, favourite=favourite)
         )
         body.add_control_locations_all()
 
@@ -128,14 +129,14 @@ class FavouriteItem(Resource):
         Update a user's favorite location by overwriting the entire resource
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
-            raise NotFound
+            return create_error_response(404, "Favorite not found")
 
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            return create_error_response(400, str(e))
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e)) from e
+            return create_error_response(415, str(e))
 
         # Fetch the existing favourite from db
         favourite.deserialize(request.json)
@@ -151,7 +152,7 @@ class FavouriteItem(Resource):
         Delete a user's favorite location
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
-            raise NotFound
+            return create_error_response(404, "Favorite not found")
         db.session.delete(favourite)
         db.session.commit()
 

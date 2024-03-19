@@ -1,10 +1,10 @@
 import json
+from datetime import datetime
 from flask import Response, url_for
 from flask_restful import Resource
-from werkzeug.exceptions import NotFound
-from bikinghub.models import WeatherData
-from ..utils import create_weather_data, BodyBuilder
-from bikinghub.constants import LINK_RELATIONS_URL, WEATHER_PROFILE, MASON
+from bikinghub.models import WeatherData, Location
+from ..utils import create_weather_data, BodyBuilder, create_error_response
+from bikinghub.constants import LINK_RELATIONS_URL, WEATHER_PROFILE, MASON, NAMESPACE
 
 
 class WeatherCollection(Resource):
@@ -15,10 +15,10 @@ class WeatherCollection(Resource):
         """
         all_weathers = WeatherData.query.all()
         if not all_weathers:
-            raise NotFound
+            return create_error_response(404, "No weather reports found.")
 
         body = BodyBuilder()
-        body.add_namespace("weather", LINK_RELATIONS_URL)
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self", url_for("api.weathercollection"))
         body["items"] = []
         for weather in all_weathers:
@@ -33,13 +33,18 @@ class WeatherCollection(Resource):
                 cloud_cover=weather.cloud_cover,
                 weather_description=weather.weather_description,
                 location_id=weather.location_id,
-                weather_time=weather.weather_time,
+                weather_time=(
+                    weather.weather_time.isoformat()
+                    if isinstance(weather.weather_time, datetime)
+                    else weather.weather_time
+                ),
             )
+            location = Location.query.filter_by(id=weather.location_id).first()
             item.add_control(
-                "self", url_for("api.weatheritem", location=weather.location_id)
+                "self", url_for("api.locationitem", location=location) + "/weather"
             )
             item.add_control("profile", WEATHER_PROFILE)
-            body["items"].append(item.serialize())
+            body["items"].append(item)
 
         return Response(json.dumps(body), status=200, mimetype=MASON)
 
@@ -87,8 +92,10 @@ class WeatherItem(Resource):
             weather_obj = create_weather_data(location)
 
         body = BodyBuilder()
-        body.add_namespace("weather", LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.weatheritem", location=location))
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
+        body.add_control(
+            "self", url_for("api.weatheritem", location=location) + "/weather"
+        )
         body.add_control("profile", WEATHER_PROFILE)
         body.add_control("collection", url_for("api.weathercollection"))
 

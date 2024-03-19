@@ -165,4 +165,3 @@ cython_debug/
 # Bikinghub
 bikinghub/__pycache__/
 *.db
-instance/

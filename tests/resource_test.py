@@ -10,7 +10,8 @@ from conftest import populate_db
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 from bikinghub import db
-from bikinghub.constants import MML_API_KEY
+from bikinghub.constants import MML_API_KEY, MASON, JSON
+from jsonschema import validate
 
 
 @event.listens_for(Engine, "connect")
@@ -72,13 +73,80 @@ def _get_user_auth_headers(
     }
 
 
+def check_namespace(client, body):
+    ns_href = body["@namespaces"]["bikinghub"]["name"]
+    resp = client.get(ns_href)
+    assert resp.status_code == 200
+
+
+def check_control_get_method(client, ctrl, obj):
+    """
+    Checks a GET type control from a JSON object be it root document or an item
+    """
+
+    href = obj["@controls"][ctrl]["href"]
+    headers = _get_admin_auth_headers()
+    resp = client.get(href, headers=headers)
+    assert resp.status_code == 200
+
+
+def check_control_delete_method(client, ctrl, obj):
+    """
+    Checks a DELETE type control from a JSON object be it root document or an item
+    """
+
+    href = obj["@controls"][ctrl]["href"]
+    method = obj["@controls"][ctrl]["method"].lower()
+    assert method == "delete"
+    headers = _get_admin_auth_headers()
+    resp = client.delete(href, headers=headers)
+    assert resp.status_code == 204
+
+
+def check_control_put_method(client, ctrl, obj, body=None):
+    """
+    Checks a PUT type control from a JSON object be it root document or an item
+    """
+    print(f"Checking control {ctrl} with {obj} and {body}")
+    ctrl_obj = obj["@controls"][ctrl]
+    href = ctrl_obj["href"]
+    method = ctrl_obj["method"].lower()
+    encoding = ctrl_obj["encoding"].lower()
+    schema = ctrl_obj["schema"]
+    assert method == "put"
+    assert encoding == "json"
+    validate(body, schema)
+    headers = _get_admin_auth_headers()
+    resp = client.put(href, json=body, headers=headers)
+    print(f"Response is {resp}")
+    assert resp.status_code == 204
+
+
+def check_control_post_method(client, ctrl, obj, body=None):
+    """
+    Checks a POST type control from a JSON object be it root document or an item
+    """
+
+    ctrl_obj = obj["@controls"][ctrl]
+    href = ctrl_obj["href"]
+    method = ctrl_obj["method"].lower()
+    encoding = ctrl_obj["encoding"].lower()
+    schema = ctrl_obj["schema"]
+    assert method == "post"
+    assert encoding == "json"
+    validate(body, schema)
+    headers = _get_admin_auth_headers()
+    resp = client.post(href, json=body, headers=headers)
+    assert resp.status_code == 201
+
+
 @pytest.mark.usefixtures("client")
 class TestUserCollection:
     """
     This class contains tests for the UserCollection resource.
     """
 
-    URL = "/api/user/"
+    URL = "/api/users/"
 
     def test_get(self, client):
         """
@@ -89,12 +157,17 @@ class TestUserCollection:
             populate_db(db)
 
             resp = test_client.get(self.URL, headers=_get_admin_auth_headers())
+            print(f"Response is {resp}")
             assert resp.status_code == 200
             body = json.loads(resp.data)
-            assert len(body["users"]) == 3
-            for user in body["users"]:
-                assert "id" in user
-                assert "name" in user
+            check_namespace(test_client, body)
+            check_control_post_method(
+                test_client, "bikinghub:user-add", body, _get_user_json()
+            )
+            assert len(body["items"]) == 3
+            for item in body["items"]:
+                check_control_get_method(test_client, "self", item)
+                check_control_get_method(test_client, "profile", item)
 
     def test_post(self, client):
         """
@@ -106,7 +179,11 @@ class TestUserCollection:
 
             # test with invalid rights
             valid = _get_user_json()
-            resp = test_client.post(self.URL, data=json.dumps(valid))
+            resp = test_client.post(
+                self.URL,
+                data=json.dumps(valid),
+                headers={"Content-Type": "application/json"},
+            )
             assert resp.status_code == 403
 
             # test with wrong content type and valid rights
@@ -146,6 +223,7 @@ class TestUserItem:
     """
 
     URL = "/api/user/user1/"
+    URL2 = "/api/user/user2/"
     NEW_URL = "/api/user/extra-user1/"
     INVALID_URL = "/api/user/user10/"
 
@@ -166,8 +244,20 @@ class TestUserItem:
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
             body = json.loads(resp.data)
-            assert body["id"]
-            assert body["name"]
+            check_namespace(test_client, body)
+            check_control_get_method(test_client, "self", body)
+            check_control_get_method(test_client, "profile", body)
+            check_control_get_method(test_client, "collection", body)
+            check_control_get_method(test_client, "bikinghub:favourites-all", body)
+            check_control_get_method(test_client, "bikinghub:locations-all", body)
+
+            check_control_put_method(
+                test_client, "bikinghub:user-edit", body, _get_user_json()
+            )
+
+            resp = test_client.get(self.URL2)
+            body = json.loads(resp.data)
+            check_control_delete_method(test_client, "bikinghub:user-delete", body)
 
             # Test with invalid user
             resp = test_client.get(self.INVALID_URL)
@@ -207,7 +297,7 @@ class TestUserItem:
 
             # test valid data and valid rights
             resp = test_client.put(
-                self.URL, data=json.dumps(valid), headers=_get_user_auth_headers()
+                self.URL, json=valid, headers=_get_user_auth_headers()
             )
             assert resp.status_code == 204
 
@@ -283,8 +373,17 @@ class TestLocationCollection(object):
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == JSON
             data = json.loads(resp.data)
+
+            check_namespace(test_client, data)
+            check_control_post_method(
+                test_client, "bikinghub:location-add", data, _get_location_json()
+            )
+            for item in data["items"]:
+                check_control_get_method(test_client, "self", item)
+                check_control_get_method(test_client, "profile", item)
+
             assert len(data) > 0
 
             # Test again if cache works, should not print "Cache miss location"
@@ -315,10 +414,13 @@ class TestLocationCollection(object):
             # Assert 404 for invalid url
             resp = test_client.post(self.INVALID_URL, json=valid_new)
             assert resp.status_code == 404
+            print(f"AAAAAAAAAAAAAAAAAA {resp.headers}")
 
             # test with valid and see that it exists afterward
             resp = test_client.post(self.URL, json=valid_new)
+            print(f"Location created with ")
             assert resp.status_code == 201
+            print(f"Location created at {resp.headers}")
             resp = test_client.get(resp.headers.get("location"))
             assert resp.status_code == 200
 
@@ -349,6 +451,7 @@ class TestLocationItem(object):
     """
 
     URL = "/api/location/1/"
+    URL2 = "/api/location/2/"
     INVALID_URL = "/api/location/10/"
 
     def test_get(self, client):
@@ -366,9 +469,22 @@ class TestLocationItem(object):
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == MASON
             data = json.loads(resp.data)
             assert len(data) > 0
+            check_namespace(test_client, data)
+            check_control_get_method(test_client, "self", data)
+            check_control_get_method(test_client, "profile", data)
+            check_control_get_method(test_client, "collection", data)
+            check_control_get_method(test_client, "bikinghub:weather-all", data)
+
+            check_control_put_method(
+                test_client, "bikinghub:location-edit", data, _get_location_json()
+            )
+
+            resp = test_client.get(self.URL2)
+            body = json.loads(resp.data)
+            check_control_delete_method(test_client, "bikinghub:location-delete", body)
 
             # Assert 404 for invalid location
             resp = test_client.get(self.INVALID_URL)
@@ -459,7 +575,7 @@ class TestWeatherCollection:
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == MASON
             data = json.loads(resp.data)
             assert len(data) > 0
 
@@ -491,14 +607,14 @@ class TestWeatherItem:
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == MASON
             data = json.loads(resp.data)
             assert len(data) > 0
 
             # Fetch the weather data for the location with no weather data
             resp = test_client.get("/api/location/4/weather/")
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == MASON
             data = json.loads(resp.data)
             print(data)
 
@@ -532,7 +648,7 @@ class TestFavouriteCollection:
             # Assert 200 for populated database
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/json"
+            assert resp.mimetype == MASON
             data = json.loads(resp.data)
             assert len(data) > 0
 

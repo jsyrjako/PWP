@@ -23,38 +23,50 @@ components:
     User:
       type: object
       properties:
-        id:
-          type: integer
-          description: The user ID.
         name:
           type: string
           description: The user name.
         # Add other properties here
       required:
-        - id
         - name
         # Add other required properties here
-        
+
+    CreateUser:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The user name.
+        password:
+          type: string
+          description: The user password.
+      required:
+        - name
+        - password
+
     Location:
       type: object
       properties:
-        id:
-          type: integer
-          description: The location ID.
         name:
           type: string
           description: The location name.
-        # Add other properties here
+        latitude:
+          type: number
+          description: The latitude of the location.
+        longitude:
+          type: number
+          description: The longitude of the location.
       required:
-        - id
         - name
+        - latitude
+        - longitude
         # Add other required properties here
 
     Users:
       type: array
       items:
         $ref: '#/components/schemas/User'
-        
+
   securitySchemes:
     BikinghubApiKey:
       type: apiKey
