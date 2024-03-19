@@ -68,8 +68,12 @@ class UserItem(Resource):
             raise BadRequest(str(e)) from e
         except UnsupportedMediaType as e:
             raise UnsupportedMediaType(str(e)) from e
-
-        if User.query.filter_by(name=request.json.get("name")).first():
+        
+        # if user is same as User.query.filter_by(name=request.json.get("name")).first():
+        if user.name == request.json.get("name"):
+            if request.json.get("password") != user.password:
+                user.password = request.json.get("password")
+        elif User.query.filter_by(name=request.json.get("name")).first():
             raise Conflict("User already exists")
         user.deserialize(request.json)
         db.session.commit()
