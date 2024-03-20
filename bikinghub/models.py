@@ -669,6 +669,9 @@ def populate_db_command():
 @click.command("delete-thing")
 @with_appcontext
 def delete_object():
+    """
+    Deletes the first user in the database.
+    """
     thing = User.query.first()
     db.session.delete(thing)
     db.session.commit()

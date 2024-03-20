@@ -31,6 +31,13 @@ from bikinghub.constants import (
 
 
 def create_error_response(status_code, title, message=None):
+    """
+    This function uses the MasonBuilder to create a Mason formatted error response.
+    The error response includes a link to the error profile.
+
+    Returns:
+        Response: A Flask Response object with the error details and status code.
+    """
     resource_url = request.path
     body = MasonBuilder(resource_url=resource_url)
     body.add_error(title, message)
@@ -358,6 +365,14 @@ def find_within_distance(lat, lon, distance, all_locations):
 
 
 def create_weather_data(location):
+    """
+    Fetches weather data from an external API using the latitude and longitude of the provided location.
+    It then parses the fetched data, creates a new WeatherData object for each forecast in the data, and stores these objects in the database.
+    The function returns the first WeatherData object created.
+
+    Returns:
+    WeatherData: The first WeatherData object created from the fetched weather data.
+    """
     latitude = location.latitude
     longitude = location.longitude
     weather_data = fetch_weather_data(latitude, longitude)

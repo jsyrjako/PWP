@@ -75,6 +75,9 @@ def _get_user_auth_headers(
 
 
 def check_namespace(client, body):
+    """
+    Checks the namespace of a JSON object
+    """
     ns_href = body["@namespaces"]["bikinghub"]["name"]
     resp = client.get(ns_href)
     assert resp.status_code == 200

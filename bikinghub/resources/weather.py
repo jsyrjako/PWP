@@ -23,7 +23,7 @@ class WeatherCollection(Resource):
             return create_error_response(404, "No weather reports found.")
 
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
         body.add_control
         body["items"] = []
         for weather in all_weathers:
@@ -47,8 +47,8 @@ class WeatherCollection(Resource):
             location = Location.query.filter_by(id=weather.location_id).first()
             item.add_control(
                 "self", url_for("api.locationitem", location=location) + "weather/"
-            )
-            item.add_control("profile", WEATHER_PROFILE)
+            ) # Add self control
+            item.add_control("profile", WEATHER_PROFILE) # Add profile control
             body["items"].append(item)
 
         return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
@@ -97,11 +97,11 @@ class WeatherItem(Resource):
             weather_obj = create_weather_data(location)
 
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.weatheritem", location=location))
-        body.add_control("profile", WEATHER_PROFILE)
-        body.add_control("collection", url_for("api.weathercollection"))
-        body.add_control("location", url_for("api.locationitem", location=location))
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
+        body.add_control("self", url_for("api.weatheritem", location=location)) # Add self control
+        body.add_control("profile", WEATHER_PROFILE) # Add profile control
+        body.add_control("collection", url_for("api.weathercollection")) # Add collection control
+        body.add_control("location", url_for("api.locationitem", location=location)) # Add location control
 
         body["items"] = weather_obj.serialize()
 
