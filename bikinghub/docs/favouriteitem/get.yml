@@ -1,0 +1,25 @@
+  summary: Get user's favourite location
+  tags:
+    - FavouriteItem
+  parameters:
+    - in: path
+      name: user
+      required: true
+      description: The user's identifier
+      schema:
+        type: string
+    - in: path
+      name: favourite
+      required: true
+      description: The favourite's identifier
+      schema:
+        type: string
+  responses:
+    '200':
+      description: The favourite location details
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Favourite'
+    '404':
+      description: Favourite not found

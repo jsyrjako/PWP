@@ -60,12 +60,52 @@ components:
         - name
         - latitude
         - longitude
-        # Add other required properties here
+
+    Favourite:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: The user id.
+        location_id:
+          type: integer
+          description: The location id.
+      required:
+        - user_id
+        - location_id
 
     Users:
       type: array
       items:
         $ref: '#/components/schemas/User'
+
+    Weather:
+      type: object
+      properties:
+        id:
+          type: integer
+        rain:
+          type: number
+        humidity:
+          type: number
+        wind_speed:
+          type: number
+        wind_direction:
+          type: string
+        temperature:
+          type: number
+        temperature_feel:
+          type: number
+        cloud_cover:
+          type: number
+        weather_description:
+          type: string
+        location_id:
+          type: integer
+        weather_time:
+          type: string
+          format: date-time
+
 
   securitySchemes:
     BikinghubApiKey:

@@ -1,0 +1,31 @@
+summary: Update a user's favourite location by overwriting the entire resource
+tags:
+  - FavouriteItem
+parameters:
+  - in: path
+    name: user
+    required: true
+    description: The user's identifier
+    schema:
+      type: string
+  - in: path
+    name: favourite
+    required: true
+    description: The favourite's identifier
+    schema:
+      type: string
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Favourite'
+responses:
+  '204':
+    description: The favourite location has been updated
+  '400':
+    description: Invalid input
+  '404':
+    description: Favourite not found
+  '415':
+    description: Unsupported media type

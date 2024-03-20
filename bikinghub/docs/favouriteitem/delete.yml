@@ -1,0 +1,21 @@
+summary: Delete a user's favourite location
+security:
+  - BearerAuth: []
+parameters:
+  - in: path
+    name: user
+    required: true
+    description: The user's identifier
+    schema:
+      type: string
+  - in: path
+    name: favourite
+    required: true
+    description: The favourite's identifier
+    schema:
+      type: string
+responses:
+  '204':
+    description: The favourite location has been deleted
+  '404':
+    description: Favourite not found

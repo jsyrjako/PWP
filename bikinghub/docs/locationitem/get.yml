@@ -1,2 +1,18 @@
+summary: Get a specific location
 tags:
   - LocationItem
+description: This method returns a specific location item.
+parameters:
+  - in: path
+    name: location
+    required: true
+    schema:
+      type: string
+    description: The ID of the location.
+responses:
+  '200':
+    description: A single location item
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Location'
