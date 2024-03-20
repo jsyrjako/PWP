@@ -11,6 +11,8 @@ The AuthenticationKey class represents an authentication key in the database.
 """
 
 import hashlib
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from flask.cli import with_appcontext
 import click
@@ -107,7 +109,7 @@ class Favourite(db.Model):
     title = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
     user_id = db.Column(
-        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        db.Text, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
 
@@ -232,13 +234,15 @@ class Comment(db.Model):
 class Location(db.Model):
     """
     Represents a location in the database.
-    - id: The location's unique identifier
+    - id: The location's identifier
+    - uuid: The location's uuid
     - name: The location's name
     - latitude: The location's latitude
     - longitude: The location's longitude
     """
 
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), default=str(uuid.uuid4))
     name = db.Column(db.Text, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
@@ -338,7 +342,6 @@ class WeatherData(db.Model):
         """
 
         return {
-            "id": self.id,
             "rain": self.rain,
             "humidity": self.humidity,
             "wind_speed": self.wind_speed,
@@ -475,7 +478,7 @@ class AuthenticationKey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.Text, nullable=False, unique=True)
     user_id = db.Column(
-        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        db.Text, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     admin = db.Column(db.Boolean, nullable=False, default=False)
 

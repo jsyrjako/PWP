@@ -222,8 +222,8 @@ class TestUserItem:
     This class contains tests for the UserItem resource.
     """
 
-    URL = "/api/users/user1/"
-    URL2 = "/api/users/user2/"
+    URL = "/api/users/user37722c77-8004-41d7-993f-ef4f24356ce3/"
+    URL2 = "/api/users/user135b18a6-b150-498a-810d-b09ab98e1bcc/"
     NEW_URL = "/api/users/extra-user1/"
     INVALID_URL = "/api/users/user10/"
 
@@ -303,7 +303,7 @@ class TestUserItem:
 
             # test with same valid data and valid rights again
             diff_name = _get_user_json()
-            diff_name["name"] = "user2"
+            diff_name["name"] = "user135b18a6-b150-498a-810d-b09ab98e1bcc"
             resp = test_client.put(
                 self.NEW_URL,
                 data=json.dumps(diff_name),
@@ -619,7 +619,8 @@ class TestWeatherItem:
             check_control_get_method(test_client, "self", data)
             check_control_get_method(test_client, "profile", data)
             check_control_get_method(test_client, "collection", data)
-
+            check_control_get_method(test_client, "location", data)
+            
             assert len(data) > 0
 
             # Fetch the weather data for the location with no weather data
@@ -640,8 +641,8 @@ class TestFavouriteCollection:
     This class contains tests for the FavouriteCollection resource.
     """
 
-    URL = "/api/users/user1/favourites/"
-    INVALID_URL = "/api/users/user1/non-favourites/"
+    URL = "/api/users/user37722c77-8004-41d7-993f-ef4f24356ce3/favourites/"
+    INVALID_URL = "/api/users/user37722c77-8004-41d7-993f-ef4f24356ce3/non-favourites/"
 
     def test_get(self, client):
         """
@@ -726,9 +727,9 @@ class TestFavouriteItem:
     This class contains tests for the FavouriteItem resource.
     """
 
-    URL = "/api/users/user1/favourites/1/"
-    URL2 = "/api/users/user2/favourites/2/"
-    INVALID_URL = "/api/users/user1/favourites/2/"
+    URL = "/api/users/user37722c77-8004-41d7-993f-ef4f24356ce3/favourites/1/"
+    URL2 = "/api/users/user135b18a6-b150-498a-810d-b09ab98e1bcc/favourites/2/"
+    INVALID_URL = "/api/users/user37722c77-8004-41d7-993f-ef4f24356ce3/favourites/2/"
     URL_INVALID_USER = "/api/users/user10/favourites/1/"
 
     def test_get(self, client):

@@ -24,7 +24,7 @@ class WeatherCollection(Resource):
 
         body = BodyBuilder()
         body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.weathercollection"))
+        body.add_control
         body["items"] = []
         for weather in all_weathers:
             item = BodyBuilder(
@@ -101,6 +101,7 @@ class WeatherItem(Resource):
         body.add_control("self", url_for("api.weatheritem", location=location))
         body.add_control("profile", WEATHER_PROFILE)
         body.add_control("collection", url_for("api.weathercollection"))
+        body.add_control("location", url_for("api.locationitem", location=location))
 
         body["items"] = weather_obj.serialize()
 

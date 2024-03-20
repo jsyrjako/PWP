@@ -164,6 +164,4 @@ cython_debug/
 # Bikinghub
 bikinghub/__pycache__/
 
-# Flask instance folder
-instance/
 

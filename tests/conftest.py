@@ -34,14 +34,14 @@ def populate_db(database):
     Populate the database with some test data
     """
     # Create some users
-    uuid1 = uuid.uuid4()
-    user1 = User(name="user" + str(uuid1), password="password1")
-    
-    uuid2 = uuid.uuid4()
-    user2 = User(name="user" + str(uuid2), password="password2")
-    
-    uuid3 = uuid.uuid4()
-    user3 = User(name="user" + str(uuid3), password="password3")
+    uuid1 = "37722c77-8004-41d7-993f-ef4f24356ce3"
+    user1 = User(name="user" + uuid1, password="password1")
+
+    uuid2 = "135b18a6-b150-498a-810d-b09ab98e1bcc"
+    user2 = User(name="user" + uuid2, password="password2")
+
+    uuid3 = "d63e4a16-5d59-499a-b8b1-71fb0ba8a8cc"
+    user3 = User(name="user" + uuid3, password="password3")
 
     database.session.add(user1)
     database.session.add(user2)
@@ -50,13 +50,13 @@ def populate_db(database):
 
     # Create some api keys
     key1 = AuthenticationKey(
-        user_id=uuid1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4"
+        user_id=1, admin=True, key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4"
     )
     key2 = AuthenticationKey(
-        user_id=uuid2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0"
+        user_id=2, admin=False, key="4N3hKWUlFGhBNUxps-jENUVNeqkbetMdr0Bi9qnCcm0"
     )
     key3 = AuthenticationKey(
-        user_id=uuid3, admin=False, key="9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0"
+        user_id=3, admin=False, key="9M86GKl56ULe2dLBmzAyA3Il7pmn7P16Tjk7jtrPJZ0"
     )
     database.session.add(key1)
     database.session.add(key2)
@@ -93,16 +93,16 @@ def populate_db(database):
 
     # Create some favourites
     favourite1 = Favourite(
-        title="favourite1", description="description1", user_id=uuid1, location_id=1
+        title="favourite1", description="description1", user_id=1, location_id=1
     )
     favourite2 = Favourite(
-        title="favourite2", description="description2", user_id=uuid2, location_id=2
+        title="favourite2", description="description2", user_id=2, location_id=2
     )
     favourite3 = Favourite(
-        title="favourite3", description="description3", user_id=uuid3, location_id=3
+        title="favourite3", description="description3", user_id=3, location_id=3
     )
     favourite4 = Favourite(
-        title="favourite3", description="description4", user_id=uuid2, location_id=1
+        title="favourite3", description="description4", user_id=2, location_id=1
     )
     database.session.add(favourite1)
     database.session.add(favourite2)
