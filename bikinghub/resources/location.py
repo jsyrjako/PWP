@@ -13,7 +13,12 @@ from ..utils import (
     page_key_location,
     BodyBuilder,
 )
-from bikinghub.constants import LINK_RELATIONS_URL, LOCATION_PROFILE, MASON, NAMESPACE
+from bikinghub.constants import (
+    LINK_RELATIONS_URL,
+    LOCATION_PROFILE,
+    MASON_CONTENT,
+    NAMESPACE,
+)
 from flasgger import swag_from
 
 
@@ -122,7 +127,7 @@ class LocationItem(Resource):
         body.add_control_weather_all()
 
         body["item"] = location.serialize()
-        return Response(json.dumps(body), 200, mimetype=MASON)
+        return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
 
     def put(self, location):
         """

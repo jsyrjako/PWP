@@ -10,11 +10,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_bcrypt import Bcrypt
 from flasgger import Swagger
-from bikinghub.constants import LINK_RELATIONS_URL
 
 cache = Cache()
 db = SQLAlchemy()
 bcrypt = Bcrypt()
+api_keys = {}
 
 
 def create_app(test_config=None):
@@ -31,6 +31,7 @@ def create_app(test_config=None):
 
     from . import models
     from . import api
+    from .constants import LINK_RELATIONS_URL
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -48,18 +49,12 @@ def create_app(test_config=None):
         app.config.from_mapping(test_config)
 
     # merge swagger docs
-
-    doc_dir = os.path.join(os.getcwd(), "bikinghub", "docs", "")
-    doc_dir2 = "./bikinghub/docs/"
-    print(f"doc_dir: {doc_dir}")
-    print(f"doc_dir2: {doc_dir2}")
-
+    doc_dir = "./bikinghub/docs/"
     app.config["SWAGGER"] = {
         "title": "Sensorhub API",
         "openapi": "3.0.3",
-        "doc_dir": doc_dir2,
+        "doc_dir": doc_dir,
     }
-
     swagger = Swagger(
         app,
         template_file=os.path.join(os.getcwd(), "bikinghub", "docs", "bikinghub.yml"),

@@ -66,11 +66,7 @@ flask --app bikinghub populate-db
 
 ## Run the Project
 
-Add MML_API_KEY to the [constants.py](./bikinghub/constants.py) file. MML_API_KEY is required to fetch the data from the Maanmittauslaitos API.
-
-```python
-MML_API_KEY = ""
-```
+Add MML_API_KEY to .env file. MML_API_KEY is required to fetch the data from the Maanmittauslaitos API.
 
 Run the project with the following command:
 
@@ -85,6 +81,11 @@ docker-compose up
 ```
 
 ## Testing
+
+### Install the app for testing
+```bash
+pip install -e .
+```
 
 ### Run tests
 

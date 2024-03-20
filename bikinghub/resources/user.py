@@ -11,7 +11,12 @@ from ..utils import (
     BodyBuilder,
     create_error_response,
 )
-from bikinghub.constants import LINK_RELATIONS_URL, USER_PROFILE, MASON, NAMESPACE
+from bikinghub.constants import (
+    LINK_RELATIONS_URL,
+    USER_PROFILE,
+    MASON_CONTENT,
+    NAMESPACE,
+)
 
 
 class UserCollection(Resource):
@@ -36,7 +41,7 @@ class UserCollection(Resource):
             item.add_control("self", url_for("api.useritem", user=user))
             item.add_control("profile", USER_PROFILE)
             body["items"].append(item)
-        return Response(json.dumps(body), 200, mimetype=MASON)
+        return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
 
     @require_admin
     def post(self):
@@ -79,7 +84,7 @@ class UserItem(Resource):
         body.add_control_locations_all()
 
         body["item"] = user.serialize()
-        return Response(json.dumps(body), 200, mimetype=MASON)
+        return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
 
     @require_authentication
     def put(self, user):

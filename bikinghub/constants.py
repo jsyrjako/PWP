@@ -2,14 +2,14 @@
 Defines various URLs and constants used in the application and for interacting with external APIs
 """
 
-MASON = "application/vnd.mason+json"
-JSON = "application/json"
+MASON_CONTENT = "application/vnd.mason+json"
+JSON_CONTENT = "application/json"
 NAMESPACE = "bikinghub"
 LINK_RELATIONS_URL = "/link-relations/"
 USER_PROFILE = "/profiles/user/"
 LOCATION_PROFILE = "/profiles/location/"
 WEATHER_PROFILE = "/profiles/weather/"
-FAVORITE_PROFILE = "/profiles/favorite/"
+FAVOURITE_PROFILE = "/profiles/favourite/"
 ERROR_PROFILE = "/profiles/error/"
 
 SLIPPERY_URL = "https://liukastumisvaroitus-api.beze.io/api/v1"
@@ -31,8 +31,6 @@ FMI_FORECAST_URL = "https://www.ilmatieteenlaitos.fi/api/weather/forecasts"
 
 
 MML_URL = "https://avoin-paikkatieto.maanmittauslaitos.fi"
-
-MML_API_KEY = ""  # Replace with your API key
 
 # Cache page size
 PAGE_SIZE = 50

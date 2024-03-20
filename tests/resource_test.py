@@ -10,8 +10,9 @@ from conftest import populate_db
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 from bikinghub import db
-from bikinghub.constants import MML_API_KEY, MASON, JSON
+from bikinghub.constants import MASON_CONTENT, JSON_CONTENT
 from jsonschema import validate
+from bikinghub.utils import SECRETS
 
 
 @event.listens_for(Engine, "connect")
@@ -52,7 +53,7 @@ def _get_favourite_json(number=1):
 
 
 def _get_admin_auth_headers(
-    content_type="application/json",
+    content_type=JSON_CONTENT,
     api_key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4",
 ):
     # Creates valid admin headers for testing
@@ -63,7 +64,7 @@ def _get_admin_auth_headers(
 
 
 def _get_user_auth_headers(
-    content_type="application/json",
+    content_type=JSON_CONTENT,
     api_key="ptKGKz3qINsn-pTIw7nBcsKCsKPlrsEsCkxj38lDpH4",
 ):
     # Creates valid user headers for testing
@@ -157,7 +158,6 @@ class TestUserCollection:
             populate_db(db)
 
             resp = test_client.get(self.URL, headers=_get_admin_auth_headers())
-            print(f"Response is {resp}")
             assert resp.status_code == 200
             body = json.loads(resp.data)
             check_namespace(test_client, body)
@@ -182,7 +182,7 @@ class TestUserCollection:
             resp = test_client.post(
                 self.URL,
                 data=json.dumps(valid),
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": JSON_CONTENT},
             )
             assert resp.status_code == 403
 
@@ -222,10 +222,10 @@ class TestUserItem:
     This class contains tests for the UserItem resource.
     """
 
-    URL = "/api/user/user1/"
-    URL2 = "/api/user/user2/"
-    NEW_URL = "/api/user/extra-user1/"
-    INVALID_URL = "/api/user/user10/"
+    URL = "/api/users/user1/"
+    URL2 = "/api/users/user2/"
+    NEW_URL = "/api/users/extra-user1/"
+    INVALID_URL = "/api/users/user10/"
 
     def test_get(self, client):
         """
@@ -373,7 +373,7 @@ class TestLocationCollection(object):
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == JSON
+            assert resp.mimetype == JSON_CONTENT
             data = json.loads(resp.data)
 
             check_namespace(test_client, data)
@@ -450,9 +450,9 @@ class TestLocationItem(object):
     This class contains tests for the LocationItem resource.
     """
 
-    URL = "/api/location/1/"
-    URL2 = "/api/location/2/"
-    INVALID_URL = "/api/location/10/"
+    URL = "/api/locations/1/"
+    URL2 = "/api/locations/2/"
+    INVALID_URL = "/api/locations/10/"
 
     def test_get(self, client):
         """
@@ -469,7 +469,7 @@ class TestLocationItem(object):
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == MASON
+            assert resp.mimetype == MASON_CONTENT
             data = json.loads(resp.data)
             assert len(data) > 0
             check_namespace(test_client, data)
@@ -575,8 +575,12 @@ class TestWeatherCollection:
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == MASON
+            assert resp.mimetype == MASON_CONTENT
             data = json.loads(resp.data)
+            check_namespace(test_client, data)
+            for item in data["items"]:
+                check_control_get_method(test_client, "self", item)
+                check_control_get_method(test_client, "profile", item)
             assert len(data) > 0
 
 
@@ -586,8 +590,8 @@ class TestWeatherItem:
     This class contains tests for the WeatherItem resource.
     """
 
-    URL = "/api/location/1/weather/"
-    INVALID_URL = "/api/location/10/weather/"
+    URL = "/api/locations/1/weather/"
+    INVALID_URL = "/api/locations/10/weather/"
 
     def test_get(self, client):
         """
@@ -597,7 +601,7 @@ class TestWeatherItem:
             test_client = client.test_client()
 
             # Error if no API key
-            assert MML_API_KEY is not None and MML_API_KEY != ""
+            assert SECRETS.MML_API_KEY is not None and SECRETS.MML_API_KEY != ""
 
             # Assert 404 for empty database
             resp = test_client.get(self.URL)
@@ -607,14 +611,21 @@ class TestWeatherItem:
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == MASON
+            assert resp.mimetype == MASON_CONTENT
             data = json.loads(resp.data)
+            print(f"Data is {data}")
+
+            check_namespace(test_client, data)
+            check_control_get_method(test_client, "self", data)
+            check_control_get_method(test_client, "profile", data)
+            check_control_get_method(test_client, "collection", data)
+
             assert len(data) > 0
 
             # Fetch the weather data for the location with no weather data
-            resp = test_client.get("/api/location/4/weather/")
+            resp = test_client.get("/api/locations/4/weather/")
             assert resp.status_code == 200
-            assert resp.mimetype == MASON
+            assert resp.mimetype == MASON_CONTENT
             data = json.loads(resp.data)
             print(data)
 
@@ -629,8 +640,8 @@ class TestFavouriteCollection:
     This class contains tests for the FavouriteCollection resource.
     """
 
-    URL = "/api/user/user1/favourites/"
-    INVALID_URL = "/api/user/user1/non-favourites/"
+    URL = "/api/users/user1/favourites/"
+    INVALID_URL = "/api/users/user1/non-favourites/"
 
     def test_get(self, client):
         """
@@ -648,8 +659,18 @@ class TestFavouriteCollection:
             # Assert 200 for populated database
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == MASON
+            assert resp.mimetype == MASON_CONTENT
+
             data = json.loads(resp.data)
+
+            check_namespace(test_client, data)
+            check_control_post_method(
+                test_client, "bikinghub:favourite-add", data, _get_favourite_json()
+            )
+            for item in data["items"]:
+                check_control_get_method(test_client, "self", item)
+                check_control_get_method(test_client, "profile", item)
+
             assert len(data) > 0
 
             # Assert 200 for testing the cache,
@@ -705,9 +726,10 @@ class TestFavouriteItem:
     This class contains tests for the FavouriteItem resource.
     """
 
-    URL = "/api/user/user1/favourite/1/"
-    INVALID_URL = "/api/user/user1/favourite/2/"
-    URL_INVALID_USER = "/api/user/user10/favourite/1/"
+    URL = "/api/users/user1/favourites/1/"
+    URL2 = "/api/users/user2/favourites/2/"
+    INVALID_URL = "/api/users/user1/favourites/2/"
+    URL_INVALID_USER = "/api/users/user10/favourites/1/"
 
     def test_get(self, client):
         """
@@ -729,9 +751,25 @@ class TestFavouriteItem:
             populate_db(db)
             resp = test_client.get(self.URL)
             assert resp.status_code == 200
-            assert resp.mimetype == "application/vnd.mason+json"
+            assert resp.mimetype == MASON_CONTENT
             data = json.loads(resp.data)
+            print(f"Data is {data}")
+
+            check_namespace(test_client, data)
+            check_control_get_method(test_client, "self", data)
+            check_control_get_method(test_client, "profile", data)
+            check_control_get_method(test_client, "collection", data)
+            check_control_put_method(
+                test_client, "bikinghub:favourite-edit", data, _get_favourite_json()
+            )
+
             assert len(data) > 0
+
+            resp = test_client.get(self.URL2)
+            body = json.loads(resp.data)
+            check_control_delete_method(test_client, "bikinghub:favourite-delete", body)
+
+            check_control_get_method(test_client, "bikinghub:locations-all", data)
 
             # Assert 404 for invalid location
             resp = test_client.get(self.INVALID_URL)

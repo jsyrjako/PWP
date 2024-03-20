@@ -4,7 +4,12 @@ from flask import Response, url_for
 from flask_restful import Resource
 from bikinghub.models import WeatherData, Location
 from ..utils import create_weather_data, BodyBuilder, create_error_response
-from bikinghub.constants import LINK_RELATIONS_URL, WEATHER_PROFILE, MASON, NAMESPACE
+from bikinghub.constants import (
+    LINK_RELATIONS_URL,
+    WEATHER_PROFILE,
+    MASON_CONTENT,
+    NAMESPACE,
+)
 
 
 class WeatherCollection(Resource):
@@ -41,12 +46,12 @@ class WeatherCollection(Resource):
             )
             location = Location.query.filter_by(id=weather.location_id).first()
             item.add_control(
-                "self", url_for("api.locationitem", location=location) + "/weather"
+                "self", url_for("api.locationitem", location=location) + "weather/"
             )
             item.add_control("profile", WEATHER_PROFILE)
             body["items"].append(item)
 
-        return Response(json.dumps(body), status=200, mimetype=MASON)
+        return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 
     # def post(self, location):
     #    """
@@ -93,15 +98,13 @@ class WeatherItem(Resource):
 
         body = BodyBuilder()
         body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control(
-            "self", url_for("api.weatheritem", location=location) + "/weather"
-        )
+        body.add_control("self", url_for("api.weatheritem", location=location))
         body.add_control("profile", WEATHER_PROFILE)
         body.add_control("collection", url_for("api.weathercollection"))
 
         body["items"] = weather_obj.serialize()
 
-        return Response(json.dumps(body), status=200, mimetype=MASON)
+        return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 
     # def put(self, location, weather):
     #    """

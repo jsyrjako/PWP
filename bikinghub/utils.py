@@ -7,8 +7,12 @@ This module contains utility functions for the Bikinghub API
 - create_weather_data: Create weather data for a location
 """
 
+import os
 import json
 import secrets
+import configparser
+from dotenv import load_dotenv, find_dotenv
+from dataclasses import dataclass
 from functools import wraps
 import math
 from datetime import datetime
@@ -19,11 +23,10 @@ from bikinghub import db
 from bikinghub.models import AuthenticationKey, WeatherData, User, Location, Favourite
 from bikinghub.constants import (
     MML_URL,
-    MML_API_KEY,
     FMI_FORECAST_URL,
     NAMESPACE,
     ERROR_PROFILE,
-    MASON,
+    MASON_CONTENT,
 )
 
 
@@ -32,7 +35,7 @@ def create_error_response(status_code, title, message=None):
     body = MasonBuilder(resource_url=resource_url)
     body.add_error(title, message)
     body.add_control("profile", href=ERROR_PROFILE)
-    return Response(json.dumps(body), status_code, mimetype=MASON)
+    return Response(json.dumps(body), status_code, mimetype=MASON_CONTENT)
 
 
 class MasonBuilder(dict):
@@ -220,51 +223,51 @@ class BodyBuilder(MasonBuilder):
 
     # endregion
 
-    # region Favorite
+    # region Favourite
     def add_control_favourites_all(self, user):
         """
-        Adds a control to the object for getting all favorite locations
+        Adds a control to the object for getting all favourite locations
         """
         self.add_control(
             f"{NAMESPACE}:favourites-all",
             href=url_for("api.favouritecollection", user=user),
             method="GET",
-            title="Get all favorite locations",
+            title="Get all favourite locations",
         )
 
     def add_control_favourite_add(self, user):
         """
-        Adds a control to the object for adding a new favorite location
+        Adds a control to the object for adding a new favourite location
         """
         self.add_control(
             f"{NAMESPACE}:favourite-add",
             href=url_for("api.favouritecollection", user=user),
             method="POST",
-            title="Add a new favorite location",
+            title="Add a new favourite location",
             encoding="json",
             schema=Favourite.json_schema(),
         )
 
-    def add_control_favorite_delete(self, user, favorite):
+    def add_control_favourite_delete(self, user, favourite):
         """
-        Adds a control to the object for deleting a favorite location
+        Adds a control to the object for deleting a favourite location
         """
         self.add_control(
-            f"{NAMESPACE}:favorite-delete",
-            href=url_for("api.favouriteitem", user=user, favorite=favorite),
+            f"{NAMESPACE}:favourite-delete",
+            href=url_for("api.favouriteitem", user=user, favourite=favourite),
             method="DELETE",
-            title="Delete a favorite location",
+            title="Delete a favourite location",
         )
 
-    def add_control_favorite_edit(self, user, favorite):
+    def add_control_favourite_edit(self, user, favourite):
         """
-        Adds a control to the object for editing a favorite location
+        Adds a control to the object for editing a favourite location
         """
         self.add_control(
-            f"{NAMESPACE}:favorite-edit",
-            href=url_for("api.favouriteitem", user=user, favorite=favorite),
+            f"{NAMESPACE}:favourite-edit",
+            href=url_for("api.favouriteitem", user=user, favourite=favourite),
             method="PUT",
-            title="Edit a favorite location",
+            title="Edit a favourite location",
             encoding="json",
             schema=Favourite.json_schema(),
         )
@@ -469,7 +472,7 @@ def query_mml_open_data_coordinates(lat, lon):
     pelias_query = (
         MML_URL
         + f"/geocoding/v2/pelias/reverse?&lang=fi&sources=addresses&point.lon={lon}&point.lat={lat}"
-        + f"&api-key={MML_API_KEY}"
+        + f"&api-key={SECRETS.MML_API_KEY}"
     )
 
     # print(f"pelias_query: {pelias_query}")
@@ -494,7 +497,7 @@ def query_mml_open_data_coordinates(lat, lon):
         f"{MML_URL}"
         + "/geographic-names/features/v1/collections/places/items"
         + f"?placeType=3010105,3020105&bbox={bbox}"
-        + f"&api-key={MML_API_KEY}"
+        + f"&api-key={SECRETS.MML_API_KEY}"
     )
     # print(f"place_name_query: {place_name_query}")
     place_name_response = requests.get(place_name_query, timeout=5)
@@ -531,3 +534,10 @@ def page_key_location(*args, **kwargs):
     page = request.args.get("page", 0)
     request_path = url_for("api.locationcollection")
     return request_path + f"[page_{page}]"
+
+
+@dataclass(frozen=True)
+class SECRETS:
+    load_dotenv(find_dotenv())
+
+    MML_API_KEY = os.environ.get("MML_API_KEY", "")
