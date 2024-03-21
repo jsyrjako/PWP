@@ -207,7 +207,7 @@ class TestUserCollection:
             resp = test_client.post(
                 self.URL,
                 data=json.dumps(valid),
-                headers=_get_admin_auth_headers(content_type="text/html"),
+                headers=_get_admin_auth_headers(content_type="image/gif"),
             )
             assert resp.status_code == 415
 

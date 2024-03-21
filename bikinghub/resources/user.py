@@ -50,12 +50,11 @@ class UserCollection(Resource):
         """
         POST method for the user collection. Adds a new user. Requires admin authentication.
         """
+        print(f"Request: {request.json}")
+        print(f"Request Headers: {request.headers}")
         try:
-            print(f"Request: {request.json}")
-            print(f"Request headers: {request.headers}")
             validate(request.json, User.json_schema())
         except ValidationError as e:
-            print(f"ValidationError: {e}")
             return create_error_response(400, "Invalid input", str(e))
         except UnsupportedMediaType as e:
             return create_error_response(415, "Unsupported media type", str(e))
@@ -102,8 +101,6 @@ class UserItem(Resource):
         """
         try:
             validate(request.json, User.json_schema())
-            print(f"User: {user}")
-            print(f"Request: {request.json}")
         except ValidationError as e:
             return create_error_response(400, "Invalid input", str(e))
         except UnsupportedMediaType as e:

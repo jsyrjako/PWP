@@ -5,7 +5,7 @@ custom URL converters.
 """
 
 import os
-from flask import Flask
+from flask import Flask, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_bcrypt import Bcrypt
@@ -58,7 +58,7 @@ def create_app(test_config=None):
     swagger = Swagger(
         app,
         template_file=os.path.join(os.getcwd(), "bikinghub", "docs", "bikinghub.yml"),
-        parse=True,
+        parse=False,
     )
 
     try:
@@ -100,6 +100,6 @@ def create_app(test_config=None):
 
     # @app.route("/admin/")
     # def admin_site():
-    #    return app.send_static_file("html/admin.html")
+    #     return app.send_static_file("html/admin.html")
 
     return app
