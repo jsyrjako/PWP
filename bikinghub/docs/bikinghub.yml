@@ -41,8 +41,8 @@ components:
           type: string
           description: The user password.
       required:
-        - name
-        - password
+       - name
+       - password
 
     Location:
       type: object

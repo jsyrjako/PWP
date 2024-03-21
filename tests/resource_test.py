@@ -10,7 +10,7 @@ from conftest import populate_db
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 from bikinghub import db
-from bikinghub.constants import MASON_CONTENT, JSON_CONTENT
+from bikinghub.constants import MASON_CONTENT, JSON_CONTENT, LINK_RELATIONS_URL
 from jsonschema import validate
 from bikinghub.utils import SECRETS
 
@@ -152,6 +152,20 @@ class TestUserCollection:
 
     URL = "/api/users/"
 
+    def test_entry_point(self, client):
+        """
+        Test the entry point of the API
+        """
+        with client.app_context():
+            test_client = client.test_client()
+            populate_db(db)
+            resp = test_client.get("/api/")
+            assert resp.status_code == 200
+            data = json.loads(resp.data)
+
+            check_namespace(test_client, data)
+            check_control_get_method(test_client, "bikinghub:users-all", data)
+
     def test_get(self, client):
         """
         Test the GET method for the UserCollection resource.
@@ -199,6 +213,7 @@ class TestUserCollection:
 
             # test with invalid content and valid rights
             invalid_user = _get_user_json().pop("name")
+            # invalid_user = {**invalid_user, **{"extra_key": "extra_value"}}
             resp = test_client.post(
                 self.URL,
                 data=json.dumps(invalid_user),
@@ -623,7 +638,7 @@ class TestWeatherItem:
             check_control_get_method(test_client, "profile", data)
             check_control_get_method(test_client, "collection", data)
             check_control_get_method(test_client, "location", data)
-            
+
             assert len(data) > 0
 
             # Fetch the weather data for the location with no weather data
@@ -846,3 +861,25 @@ class TestFavouriteItem:
                 self.INVALID_URL, headers=_get_user_auth_headers()
             )
             assert resp.status_code == 404
+
+
+@pytest.mark.usefixtures("client")
+class TestExtraURLs:
+
+    PROFILE_URL = "/profiles/user1/"
+
+    def test_get_profile(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+
+            # Assert 200 for valid request
+            resp = test_client.get(self.PROFILE_URL)
+            assert resp.status_code == 200
+
+    def test_get_link_relations(self, client):
+        with client.app_context():
+            test_client = client.test_client()
+
+            # Assert 200 for valid request
+            resp = test_client.get(LINK_RELATIONS_URL)
+            assert resp.status_code == 200

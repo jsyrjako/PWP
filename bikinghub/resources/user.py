@@ -32,14 +32,16 @@ class UserCollection(Resource):
         Get a list of all users. Requires admin authentication.
         """
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
-        body.add_control("self", url_for("api.usercollection")) # Add self control
-        body.add_control_user_add() # Add control to add a user
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control("self", url_for("api.usercollection"))  # Add self control
+        body.add_control_user_add()  # Add control to add a user
         body["items"] = []
         for user in User.query.all():
             item = BodyBuilder()
-            item.add_control("self", url_for("api.useritem", user=user)) # Add self control
-            item.add_control("profile", USER_PROFILE) # Add profile control
+            item.add_control(
+                "self", url_for("api.useritem", user=user)
+            )  # Add self control
+            item.add_control("profile", USER_PROFILE)  # Add profile control
             body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
 
@@ -48,17 +50,19 @@ class UserCollection(Resource):
         """
         POST method for the user collection. Adds a new user. Requires admin authentication.
         """
-        print(f"Request: {request.json}")
-        print(f"Request type: {request.headers}")
         try:
+            print(f"Request: {request.json}")
+            print(f"Request headers: {request.headers}")
             validate(request.json, User.json_schema())
         except ValidationError as e:
+            print(f"ValidationError: {e}")
             return create_error_response(400, "Invalid input", str(e))
         except UnsupportedMediaType as e:
             return create_error_response(415, "Unsupported media type", str(e))
 
         user = User(
-            name=request.json.get("name"), password=request.json.get("password") # Get name and password from request
+            name=request.json.get("name"),
+            password=request.json.get("password"),  # Get name and password from request
         )
         if User.query.filter_by(name=user.name).first():
             return create_error_response(409, "User already exists")
@@ -77,14 +81,16 @@ class UserItem(Resource):
         GET method for the user item.
         """
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
-        body.add_control("self", url_for("api.useritem", user=user)) # Add self control
-        body.add_control("profile", USER_PROFILE) # Add profile control
-        body.add_control("collection", url_for("api.usercollection")) # Add collection control
-        body.add_control_user_edit(user) # Add control to edit user
-        body.add_control_user_delete(user) # Add control to delete user
-        body.add_control_favourites_all(user) # Add control to get all favourites
-        body.add_control_locations_all() # Add control to get all locations
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control("self", url_for("api.useritem", user=user))  # Add self control
+        body.add_control("profile", USER_PROFILE)  # Add profile control
+        body.add_control(
+            "collection", url_for("api.usercollection")
+        )  # Add collection control
+        body.add_control_user_edit(user)  # Add control to edit user
+        body.add_control_user_delete(user)  # Add control to delete user
+        body.add_control_favourites_all(user)  # Add control to get all favourites
+        body.add_control_locations_all()  # Add control to get all locations
 
         body["item"] = user.serialize()
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)

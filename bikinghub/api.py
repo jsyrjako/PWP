@@ -36,9 +36,10 @@ api.add_resource(weather.WeatherItem, "/locations/<location:location>/weather/")
 # Entry point
 @api_bp.route("/")
 def entry_point():
+    """
+    Entry point for the API
+    """
     body = BodyBuilder()
     body.add_namespace(f"{NAMESPACE}", LINK_RELATIONS_URL)
     body.add_control_users_all()
-    # body.add_control(f"{NAMESPACE}:locations-all", href="/api/locations/")
-    # body.add_control(f"{NAMESPACE}:weather-all", href="/api/weather/")
     return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)

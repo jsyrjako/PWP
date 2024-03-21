@@ -42,7 +42,7 @@ def create_error_response(status_code, title, message=None):
     body = MasonBuilder(resource_url=resource_url)
     body.add_error(title, message)
     body.add_control("profile", href=ERROR_PROFILE)
-    return Response(json.dumps(body), status_code, mimetype=MASON_CONTENT)
+    return Response(json.dumps(body), status=status_code, mimetype=MASON_CONTENT)
 
 
 class MasonBuilder(dict):
