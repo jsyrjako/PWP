@@ -105,9 +105,14 @@ class UserItem(Resource):
             return create_error_response(400, "Invalid input", str(e))
         except UnsupportedMediaType as e:
             return create_error_response(415, "Unsupported media type", str(e))
-
-        if User.query.filter_by(name=request.json.get("name")).first():
+          
+        # if user is same as User.query.filter_by(name=request.json.get("name")).first():
+        if user.name == request.json.get("name"):
+            if request.json.get("password") != user.password:
+                user.password = request.json.get("password")
+        elif User.query.filter_by(name=request.json.get("name")).first():
             return create_error_response(409, "User already exists")
+         
         user.deserialize(request.json)
         db.session.commit()
 
