@@ -109,7 +109,7 @@ class Favourite(db.Model):
     title = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
     user_id = db.Column(
-        db.Text, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
 
@@ -478,7 +478,7 @@ class AuthenticationKey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.Text, nullable=False, unique=True)
     user_id = db.Column(
-        db.Text, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     admin = db.Column(db.Boolean, nullable=False, default=False)
 
