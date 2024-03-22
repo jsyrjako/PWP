@@ -11,6 +11,8 @@ The AuthenticationKey class represents an authentication key in the database.
 """
 
 import hashlib
+import uuid
+#from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from flask.cli import with_appcontext
 import click
@@ -232,13 +234,15 @@ class Comment(db.Model):
 class Location(db.Model):
     """
     Represents a location in the database.
-    - id: The location's unique identifier
+    - id: The location's identifier
+    - uuid: The location's uuid
     - name: The location's name
     - latitude: The location's latitude
     - longitude: The location's longitude
     """
 
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), default=str(uuid.uuid4))
     name = db.Column(db.Text, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
@@ -338,7 +342,6 @@ class WeatherData(db.Model):
         """
 
         return {
-            "id": self.id,
             "rain": self.rain,
             "humidity": self.humidity,
             "wind_speed": self.wind_speed,
@@ -666,6 +669,9 @@ def populate_db_command():
 @click.command("delete-thing")
 @with_appcontext
 def delete_object():
+    """
+    Deletes the first user in the database.
+    """
     thing = User.query.first()
     db.session.delete(thing)
     db.session.commit()

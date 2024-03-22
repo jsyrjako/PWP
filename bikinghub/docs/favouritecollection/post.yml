@@ -1,0 +1,28 @@
+summary: Create a new favourite location for a user
+tags:
+  - Favourite
+parameters:
+  - in: path
+    name: user
+    required: true
+    description: The user's identifier
+    schema:
+      type: string
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Favourite'
+responses:
+  '201':
+    description: A new favourite location has been created
+    headers:
+      Location:
+        schema:
+          type: string
+        description: URL of the new favourite location
+  '400':
+    description: Invalid input
+  '415':
+    description: Unsupported media type

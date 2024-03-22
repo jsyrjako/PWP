@@ -1,0 +1,21 @@
+summary: Update a location by overwriting the entire resource
+parameters:
+  - in: path
+    name: location
+    required: true
+    schema:
+      type: string
+    description: The identifier of the location to be updated
+  - in: body
+    name: body
+    required: true
+    schema:
+      $ref: '#/components/schemas/Location'
+    description: The new location data to overwrite the existing one
+responses:
+  '204':
+    description: The location was successfully updated
+  '400':
+    description: The request body is not valid according to the Location schema
+  '415':
+    description: The request's content type is not supported

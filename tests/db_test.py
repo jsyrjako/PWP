@@ -4,7 +4,9 @@ and validation of database models User, Favourite, Location, and WeatherData.
 """
 
 import pytest
+import uuid
 from sqlalchemy.exc import IntegrityError, StatementError
+from sqlalchemy.dialects.postgresql import UUID
 from conftest import populate_db
 from bikinghub import db
 from bikinghub.models import (
@@ -58,11 +60,18 @@ def test_delete_user(client):
     """
     with client.app_context():
         populate_db(db)
-        user = User.query.filter_by(name="user1").first()
+        user = User.query.filter_by(
+            name="user37722c77-8004-41d7-993f-ef4f24356ce3"
+        ).first()
         assert user is not None
         db.session.delete(user)
         db.session.commit()
-        assert User.query.filter_by(name="user1").first() is None
+        assert (
+            User.query.filter_by(
+                name="user37722c77-8004-41d7-993f-ef4f24356ce3"
+            ).first()
+            is None
+        )
         assert Favourite.query.filter_by(user_id=user.id).first() is None
         assert AuthenticationKey.query.filter_by(user_id=user.id).first() is None
 
@@ -74,8 +83,12 @@ def test_delete_favourite(client):
     """
     with client.app_context():
         populate_db(db)
-        user = User.query.filter_by(name="user1").first()
+        user = User.query.filter_by(
+            name="user37722c77-8004-41d7-993f-ef4f24356ce3"
+        ).first()
+        print(f"user: {user.id}")
         favourite = Favourite.query.filter_by(user_id=user.id).first()
+        print(f"favourite: {favourite}")
         db.session.delete(favourite)
         db.session.commit()
         assert Favourite.query.filter_by(id=favourite.id).first() is None
@@ -117,7 +130,9 @@ def test_user_columns(client):
     with client.app_context():
         populate_db(db)
         # Attempt to create a user with a non-unique name
-        user = User(name="user1", password="password")
+        user = User(
+            name="user37722c77-8004-41d7-993f-ef4f24356ce3", password="password"
+        )
         db.session.add(user)
         with pytest.raises(IntegrityError):
             db.session.commit()

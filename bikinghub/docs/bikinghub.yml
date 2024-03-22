@@ -1,0 +1,114 @@
+
+openapi: '3.0.3'
+info:
+  title: BikingHub API
+  description: |
+    This is an API for BikingHub, a social network for bikers.
+    It stores relevant information for users, such as weather and traffic
+  version: 0.0.1
+  contact:
+    name: BikingHub Support
+    email: biking.support
+    url: 'https://bikinghub.org'
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+
+servers:
+  - url: 'http://localhost:5000'
+    description: The production server
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The user name.
+        # Add other properties here
+      required:
+        - name
+        # Add other required properties here
+
+    CreateUser:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The user name.
+        password:
+          type: string
+          description: The user password.
+      required:
+       - name
+       - password
+
+    Location:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The location name.
+        latitude:
+          type: number
+          description: The latitude of the location.
+        longitude:
+          type: number
+          description: The longitude of the location.
+      required:
+        - name
+        - latitude
+        - longitude
+
+    Favourite:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: The user id.
+        location_id:
+          type: integer
+          description: The location id.
+      required:
+        - user_id
+        - location_id
+
+    Users:
+      type: array
+      items:
+        $ref: '#/components/schemas/User'
+
+    Weather:
+      type: object
+      properties:
+        id:
+          type: integer
+        rain:
+          type: number
+        humidity:
+          type: number
+        wind_speed:
+          type: number
+        wind_direction:
+          type: string
+        temperature:
+          type: number
+        temperature_feel:
+          type: number
+        cloud_cover:
+          type: number
+        weather_description:
+          type: string
+        location_id:
+          type: integer
+        weather_time:
+          type: string
+          format: date-time
+
+
+  securitySchemes:
+    BikinghubApiKey:
+      type: apiKey
+      in: header
+      name: Bikinghub-Api-Key

@@ -1,0 +1,22 @@
+tags:
+  - name: UserItem
+summary: Get a user item
+description: This endpoint returns a user item identified by the user ID.
+parameters:
+  - in: path
+    name: userId
+    required: true
+    description: The ID of the user.
+    schema:
+      type: string
+responses:
+  '200':
+    description: The user item was successfully retrieved. The response body contains the user data.
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/User'
+  '404':
+    description: The user with the specified ID was not found.
+security:
+  - BikinghubApiKey: []

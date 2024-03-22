@@ -1,0 +1,38 @@
+summary: List all favourite locations for a user
+tags:
+  - Favourite
+parameters:
+  - in: path
+    name: user
+    required: true
+    description: The user's identifier
+    schema:
+      type: string
+  - in: query
+    name: page
+    schema:
+      type: integer
+      default: 0
+    description: Page number for pagination
+responses:
+  '200':
+    description: A list of favourite locations for the user
+    content:
+      application/vnd.mason+json:
+        schema:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  self:
+                    type: object
+                    properties:
+                      href:
+                        type: string
+                  profile:
+                    type: string
+  '400':
+    description: Invalid page number

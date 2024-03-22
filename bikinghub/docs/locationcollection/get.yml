@@ -1,0 +1,26 @@
+tags:
+  - Location
+summary: List all locations
+description: This endpoint lists all locations. The results are paginated and can be controlled with the `page` query parameter.
+parameters:
+- name: page
+  in: query
+  description: The page number to retrieve. Defaults to 0.
+  required: false
+  schema:
+    type: integer
+    format: int32
+responses:
+  '200':
+    description: A list of locations.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            locations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Location'
+  '400':
+    description: Invalid page value.

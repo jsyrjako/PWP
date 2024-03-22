@@ -2,6 +2,7 @@ import os
 import tempfile
 from datetime import datetime
 import pytest
+import uuid
 from bikinghub.models import User, Favourite, Location, WeatherData, AuthenticationKey
 from bikinghub import create_app, db
 
@@ -33,9 +34,15 @@ def populate_db(database):
     Populate the database with some test data
     """
     # Create some users
-    user1 = User(name="user1", password="password1")
-    user2 = User(name="user2", password="password2")
-    user3 = User(name="user3", password="password3")
+    uuid1 = "37722c77-8004-41d7-993f-ef4f24356ce3"
+    user1 = User(name="user" + uuid1, password="password1")
+
+    uuid2 = "135b18a6-b150-498a-810d-b09ab98e1bcc"
+    user2 = User(name="user" + uuid2, password="password2")
+
+    uuid3 = "d63e4a16-5d59-499a-b8b1-71fb0ba8a8cc"
+    user3 = User(name="user" + uuid3, password="password3")
+
     database.session.add(user1)
     database.session.add(user2)
     database.session.add(user3)

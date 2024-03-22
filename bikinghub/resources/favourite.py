@@ -2,11 +2,18 @@ import json
 from flask import Response, request, url_for
 from flask_restful import Resource
 from jsonschema import ValidationError, validate
-from werkzeug.exceptions import NotFound, UnsupportedMediaType, BadRequest
+from werkzeug.exceptions import UnsupportedMediaType
 from bikinghub.models import Favourite
-from bikinghub.constants import PAGE_SIZE, CACHE_TIME
+from bikinghub.constants import (
+    PAGE_SIZE,
+    CACHE_TIME,
+    LINK_RELATIONS_URL,
+    FAVOURITE_PROFILE,
+    MASON_CONTENT,
+    NAMESPACE,
+)
 from bikinghub import db, cache
-from ..utils import require_authentication, page_key
+from ..utils import create_error_response, require_authentication, page_key, BodyBuilder
 
 
 class FavouriteCollection(Resource):
@@ -25,51 +32,63 @@ class FavouriteCollection(Resource):
     )
     def get(self, user):
         """
-        List all favorite locations for user
+        List all favourite locations for user
         """
         print("Cache miss favourite")
 
         try:
-            page = int(request.args.get("page", 0))
+            page = int(request.args.get("page", 0))  # Get the page number
         except ValueError:
-            return (400, "Invalid page value")
+            return create_error_response(400, "Invalid page number")
 
+        # Get the first page of favourites
         remaining = (
             Favourite.query.filter_by(user=user).order_by("location_id").offset(page)
         )
 
-        body = {"favourites": []}
-
+        body = BodyBuilder()
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control(
+            "self", url_for("api.favouritecollection", user=user)
+        )  # Add self control
+        body.add_control_favourite_add(user)  # Add control to add a favourite
+        body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
-            body["favourites"].append(fav.serialize())
+            item = BodyBuilder()
+            item.add_control(
+                "self", url_for("api.favouriteitem", user=user, favourite=fav)
+            )
+            item.add_control("profile", FAVOURITE_PROFILE)  # Add profile control
+            body["items"].append(item)
 
-        # for fav in Favourite.query.filter_by(user_id=user.id).all():
-        #    body["favourites"].append(fav.serialize())
+        response = Response(
+            json.dumps(body), 200, mimetype=MASON_CONTENT
+        )  # Create response
 
-        response = Response(json.dumps(body), 200, mimetype="application/json")
-        if len(body["favourites"]) == PAGE_SIZE:
+        # Cache the response if it's a full page
+        if len(body["items"]) == PAGE_SIZE:
             cache.set(page_key(), response, timeout=None)
 
         return response
 
     def post(self, user):
         """
-        Create a new favorite location for user
+        Create a new favourite location for user
         """
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            return create_error_response(400, str(e))
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e)) from e
+            return create_error_response(415, str(e))
 
-        favourite = Favourite()
+        favourite = Favourite()  # Create a new favourite
         favourite.deserialize(request.json)
         favourite.user = user
         db.session.add(favourite)
         db.session.commit()
 
-        self._clear_cache(user)
+        self._clear_cache(user)  # Clear the cache
 
         return Response(
             status=201,
@@ -90,45 +109,65 @@ class FavouriteItem(Resource):
 
     def get(self, user, favourite):
         """
-        Get user's favorite location
+        Get user's favourite location
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
-            raise NotFound
-        body = favourite.serialize()
-        return Response(json.dumps(body), status=200, mimetype="application/json")
+            return create_error_response(404, "Favourite not found")
+        body = BodyBuilder()
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control(
+            "self",
+            url_for(
+                "api.favouriteitem", user=user, favourite=favourite
+            ),  # Add self control
+        )
+        body.add_control("profile", FAVOURITE_PROFILE)  # Add profile control
+        body.add_control(
+            "collection", url_for("api.favouritecollection", user=user)
+        )  # Add collection control
+        body.add_control_favourite_delete(
+            user, favourite
+        )  # Add control to delete a favourite
+        body.add_control_favourite_edit(
+            user, favourite
+        )  # Add control to edit a favourite
+        body.add_control_locations_all()  # Add control to get all locations
+
+        body["item"] = favourite.serialize()
+        return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 
     def put(self, user, favourite):
         """
-        Update a user's favorite location by overwriting the entire resource
+        Update a user's favourite location by overwriting the entire resource
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
-            raise NotFound
+            return create_error_response(404, "Favourite not found")
 
         try:
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
-            raise BadRequest(str(e)) from e
+            return create_error_response(400, str(e))
         except UnsupportedMediaType as e:
-            raise UnsupportedMediaType(str(e)) from e
+            return create_error_response(415, str(e))
 
         # Fetch the existing favourite from db
         favourite.deserialize(request.json)
         db.session.commit()
 
-        self._clear_cache(user)
+        self._clear_cache(user)  # Clear the cache
 
         return Response(status=204)
 
     @require_authentication
     def delete(self, user, favourite):
         """
-        Delete a user's favorite location
+        Delete a user's favourite location
         """
         if favourite.id not in [fav.id for fav in user.favourites]:
-            raise NotFound
+            return create_error_response(404, "Favourite not found")
         db.session.delete(favourite)
         db.session.commit()
 
-        self._clear_cache(user)
+        self._clear_cache(user)  # Clear the cache
 
         return Response(status=204)

@@ -1,9 +1,15 @@
 import json
-from flask import Response
+from datetime import datetime
+from flask import Response, url_for
 from flask_restful import Resource
-from werkzeug.exceptions import NotFound
-from bikinghub.models import WeatherData
-from ..utils import create_weather_data
+from bikinghub.models import WeatherData, Location
+from bikinghub.constants import (
+    LINK_RELATIONS_URL,
+    WEATHER_PROFILE,
+    MASON_CONTENT,
+    NAMESPACE,
+)
+from ..utils import create_weather_data, BodyBuilder, create_error_response
 
 
 class WeatherCollection(Resource):
@@ -14,12 +20,38 @@ class WeatherCollection(Resource):
         """
         all_weathers = WeatherData.query.all()
         if not all_weathers:
-            raise NotFound
-        weather_datas = [weather.serialize() for weather in all_weathers]
+            return create_error_response(404, "No weather reports found.")
 
-        return Response(
-            json.dumps(weather_datas), status=200, mimetype="application/json"
-        )
+        body = BodyBuilder()
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control
+        body["items"] = []
+        for weather in all_weathers:
+            item = BodyBuilder(
+                id=weather.id,
+                rain=weather.rain,
+                humidity=weather.humidity,
+                wind_speed=weather.wind_speed,
+                wind_direction=weather.wind_direction,
+                temperature=weather.temperature,
+                temperature_feel=weather.temperature_feel,
+                cloud_cover=weather.cloud_cover,
+                weather_description=weather.weather_description,
+                location_id=weather.location_id,
+                weather_time=(
+                    weather.weather_time.isoformat()
+                    if isinstance(weather.weather_time, datetime)
+                    else weather.weather_time
+                ),
+            )
+            location = Location.query.filter_by(id=weather.location_id).first()
+            item.add_control(
+                "self", url_for("api.locationitem", location=location) + "weather/"
+            )  # Add self control
+            item.add_control("profile", WEATHER_PROFILE)  # Add profile control
+            body["items"].append(item)
+
+        return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 
     # def post(self, location):
     #    """
@@ -62,9 +94,24 @@ class WeatherItem(Resource):
             .first()
         )
         if not weather_obj:
-            weather_obj = create_weather_data(location.serialize())
-        body = weather_obj.serialize()
-        return Response(json.dumps(body), status=200, mimetype="application/json")
+            weather_obj = create_weather_data(location)
+
+        body = BodyBuilder()
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control(
+            "self", url_for("api.weatheritem", location=location)
+        )  # Add self control
+        body.add_control("profile", WEATHER_PROFILE)  # Add profile control
+        body.add_control(
+            "collection", url_for("api.weathercollection")
+        )  # Add collection control
+        body.add_control(
+            "location", url_for("api.locationitem", location=location)
+        )  # Add location control
+
+        body["items"] = weather_obj.serialize()
+
+        return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 
     # def put(self, location, weather):
     #    """

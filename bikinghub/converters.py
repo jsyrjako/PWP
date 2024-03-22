@@ -20,6 +20,7 @@ class UserConverter(BaseConverter):
         return user
 
     def to_url(self, value):
+        print(f"UserConverter: {value}")
         return str(value.name)
 
 
@@ -35,6 +36,7 @@ class FavouriteConverter(BaseConverter):
         return favourite
 
     def to_url(self, value):
+        print(f"FavouriteConverter: {value}")
         return str(value.id)
 
 
@@ -72,4 +74,5 @@ class LocationConverter(BaseConverter):
         return location
 
     def to_url(self, value):
+        print(f"LocationConverter: {value}")
         return str(value.id)
