@@ -3,13 +3,13 @@ from datetime import datetime
 from flask import Response, url_for
 from flask_restful import Resource
 from bikinghub.models import WeatherData, Location
-from ..utils import create_weather_data, BodyBuilder, create_error_response
 from bikinghub.constants import (
     LINK_RELATIONS_URL,
     WEATHER_PROFILE,
     MASON_CONTENT,
     NAMESPACE,
 )
+from ..utils import create_weather_data, BodyBuilder, create_error_response
 
 
 class WeatherCollection(Resource):
@@ -23,7 +23,7 @@ class WeatherCollection(Resource):
             return create_error_response(404, "No weather reports found.")
 
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
         body.add_control
         body["items"] = []
         for weather in all_weathers:
@@ -47,8 +47,8 @@ class WeatherCollection(Resource):
             location = Location.query.filter_by(id=weather.location_id).first()
             item.add_control(
                 "self", url_for("api.locationitem", location=location) + "weather/"
-            ) # Add self control
-            item.add_control("profile", WEATHER_PROFILE) # Add profile control
+            )  # Add self control
+            item.add_control("profile", WEATHER_PROFILE)  # Add profile control
             body["items"].append(item)
 
         return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
@@ -97,11 +97,17 @@ class WeatherItem(Resource):
             weather_obj = create_weather_data(location)
 
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
-        body.add_control("self", url_for("api.weatheritem", location=location)) # Add self control
-        body.add_control("profile", WEATHER_PROFILE) # Add profile control
-        body.add_control("collection", url_for("api.weathercollection")) # Add collection control
-        body.add_control("location", url_for("api.locationitem", location=location)) # Add location control
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control(
+            "self", url_for("api.weatheritem", location=location)
+        )  # Add self control
+        body.add_control("profile", WEATHER_PROFILE)  # Add profile control
+        body.add_control(
+            "collection", url_for("api.weathercollection")
+        )  # Add collection control
+        body.add_control(
+            "location", url_for("api.locationitem", location=location)
+        )  # Add location control
 
         body["items"] = weather_obj.serialize()
 

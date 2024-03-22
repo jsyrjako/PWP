@@ -12,7 +12,7 @@ The AuthenticationKey class represents an authentication key in the database.
 
 import hashlib
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
+#from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from flask.cli import with_appcontext
 import click

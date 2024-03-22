@@ -5,7 +5,7 @@ custom URL converters.
 """
 
 import os
-from flask import Flask, redirect, render_template
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from flask_bcrypt import Bcrypt
@@ -96,7 +96,7 @@ def create_app(test_config=None):
 
     @app.route("/profiles/<profile>/")
     def send_profile(profile):
-        return "you requests {} profile".format(profile)
+        return f"you requested {profile} profile"
 
     # @app.route("/admin/")
     # def admin_site():

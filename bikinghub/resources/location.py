@@ -5,7 +5,14 @@ from jsonschema import ValidationError, validate
 from werkzeug.exceptions import UnsupportedMediaType
 from bikinghub import db, cache
 from bikinghub.models import Location
-from bikinghub.constants import PAGE_SIZE, CACHE_TIME
+from bikinghub.constants import (
+    LINK_RELATIONS_URL,
+    LOCATION_PROFILE,
+    MASON_CONTENT,
+    NAMESPACE,
+    PAGE_SIZE,
+    CACHE_TIME,
+)
 from ..utils import (
     create_error_response,
     find_within_distance,
@@ -13,13 +20,6 @@ from ..utils import (
     page_key_location,
     BodyBuilder,
 )
-from bikinghub.constants import (
-    LINK_RELATIONS_URL,
-    LOCATION_PROFILE,
-    MASON_CONTENT,
-    NAMESPACE,
-)
-from flasgger import swag_from
 
 
 class LocationCollection(Resource):
@@ -48,9 +48,9 @@ class LocationCollection(Resource):
         print("Cache miss location")
 
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
-        body.add_control("self", url_for("api.locationcollection")) # Add self control
-        body.add_control_add_location() # Add control to add a location
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control("self", url_for("api.locationcollection"))  # Add self control
+        body.add_control_add_location()  # Add control to add a location
         body["items"] = []
 
         # Serialize each location and add it to the response body
@@ -60,8 +60,10 @@ class LocationCollection(Resource):
                 longitude=location.longitude,
                 name=location.name,
             )
-            item.add_control("self", url_for("api.locationitem", location=location)) # Add self control
-            item.add_control("profile", LOCATION_PROFILE) # Add profile control
+            item.add_control(
+                "self", url_for("api.locationitem", location=location)
+            )  # Add self control
+            item.add_control("profile", LOCATION_PROFILE)  # Add profile control
             body["items"].append(item)
 
         return Response(json.dumps(body), status=200, mimetype="application/json")
@@ -70,7 +72,7 @@ class LocationCollection(Resource):
         """
         Create a new location
         """
-        print(f"LocationCollection.post()")
+        print("LocationCollection.post()")
         print(f"request.json: {request.json}")
         try:
             validate(request.json, Location.json_schema())
@@ -80,8 +82,8 @@ class LocationCollection(Resource):
         except UnsupportedMediaType as e:
             return create_error_response(415, str(e))
 
-        lat = request.json.get("latitude") # Get latitude from request
-        lon = request.json.get("longitude") # Get longitude from request
+        lat = request.json.get("latitude")  # Get latitude from request
+        lon = request.json.get("longitude")  # Get longitude from request
 
         # query for locations within 0.05km of lat, lon
         all_locations = Location.query.all()
@@ -93,7 +95,7 @@ class LocationCollection(Resource):
         db.session.add(location)
         db.session.commit()
 
-        self._clear_cache() # Clear the cache
+        self._clear_cache()  # Clear the cache
 
         return Response(
             status=201,
@@ -118,13 +120,17 @@ class LocationItem(Resource):
         GET method for the location item
         """
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
-        body.add_control("self", url_for("api.locationitem", location=location)) # Add self control
-        body.add_control("profile", LOCATION_PROFILE) # Add profile control
-        body.add_control("collection", url_for("api.locationcollection")) # Add collection control
-        body.add_control_location_delete(location) # Add control to delete a location
-        body.add_control_location_edit(location) # Add control to edit a location
-        body.add_control_weather_all() # Add control to get all weather
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control(
+            "self", url_for("api.locationitem", location=location)
+        )  # Add self control
+        body.add_control("profile", LOCATION_PROFILE)  # Add profile control
+        body.add_control(
+            "collection", url_for("api.locationcollection")
+        )  # Add collection control
+        body.add_control_location_delete(location)  # Add control to delete a location
+        body.add_control_location_edit(location)  # Add control to edit a location
+        body.add_control_weather_all()  # Add control to get all weather
 
         body["item"] = location.serialize()
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
@@ -143,7 +149,7 @@ class LocationItem(Resource):
         location.deserialize(request.json)
         db.session.commit()
 
-        self._clear_cache() # Clear the cache
+        self._clear_cache()  # Clear the cache
 
         return Response(status=204)
 
@@ -155,6 +161,6 @@ class LocationItem(Resource):
         db.session.delete(location)
         db.session.commit()
 
-        self._clear_cache() # Clear the cache
+        self._clear_cache()  # Clear the cache
 
         return Response(status=204)

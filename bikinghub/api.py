@@ -7,8 +7,8 @@ import json
 from flask import Blueprint, Response
 from flask_restful import Api
 from bikinghub.resources import location, user, weather, favourite
-from .utils import BodyBuilder
 from bikinghub.constants import LINK_RELATIONS_URL, MASON_CONTENT, NAMESPACE
+from .utils import BodyBuilder
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 

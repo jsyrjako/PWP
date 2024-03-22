@@ -37,7 +37,7 @@ class FavouriteCollection(Resource):
         print("Cache miss favourite")
 
         try:
-            page = int(request.args.get("page", 0)) # Get the page number
+            page = int(request.args.get("page", 0))  # Get the page number
         except ValueError:
             return create_error_response(400, "Invalid page number")
 
@@ -47,19 +47,23 @@ class FavouriteCollection(Resource):
         )
 
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
-        body.add_control("self", url_for("api.favouritecollection", user=user)) # Add self control
-        body.add_control_favourite_add(user) # Add control to add a favourite
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
+        body.add_control(
+            "self", url_for("api.favouritecollection", user=user)
+        )  # Add self control
+        body.add_control_favourite_add(user)  # Add control to add a favourite
         body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
-            item = BodyBuilder() 
+            item = BodyBuilder()
             item.add_control(
                 "self", url_for("api.favouriteitem", user=user, favourite=fav)
             )
-            item.add_control("profile", FAVOURITE_PROFILE) # Add profile control
+            item.add_control("profile", FAVOURITE_PROFILE)  # Add profile control
             body["items"].append(item)
 
-        response = Response(json.dumps(body), 200, mimetype=MASON_CONTENT) # Create response
+        response = Response(
+            json.dumps(body), 200, mimetype=MASON_CONTENT
+        )  # Create response
 
         # Cache the response if it's a full page
         if len(body["items"]) == PAGE_SIZE:
@@ -78,13 +82,13 @@ class FavouriteCollection(Resource):
         except UnsupportedMediaType as e:
             return create_error_response(415, str(e))
 
-        favourite = Favourite() # Create a new favourite
+        favourite = Favourite()  # Create a new favourite
         favourite.deserialize(request.json)
         favourite.user = user
         db.session.add(favourite)
         db.session.commit()
 
-        self._clear_cache(user) # Clear the cache
+        self._clear_cache(user)  # Clear the cache
 
         return Response(
             status=201,
@@ -110,15 +114,24 @@ class FavouriteItem(Resource):
         if favourite.id not in [fav.id for fav in user.favourites]:
             return create_error_response(404, "Favourite not found")
         body = BodyBuilder()
-        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL) # Add namespace
+        body.add_namespace(NAMESPACE, LINK_RELATIONS_URL)  # Add namespace
         body.add_control(
-            "self", url_for("api.favouriteitem", user=user, favourite=favourite) # Add self control
+            "self",
+            url_for(
+                "api.favouriteitem", user=user, favourite=favourite
+            ),  # Add self control
         )
-        body.add_control("profile", FAVOURITE_PROFILE) # Add profile control
-        body.add_control("collection", url_for("api.favouritecollection", user=user)) # Add collection control
-        body.add_control_favourite_delete(user, favourite) # Add control to delete a favourite
-        body.add_control_favourite_edit(user, favourite) # Add control to edit a favourite
-        body.add_control_locations_all() # Add control to get all locations
+        body.add_control("profile", FAVOURITE_PROFILE)  # Add profile control
+        body.add_control(
+            "collection", url_for("api.favouritecollection", user=user)
+        )  # Add collection control
+        body.add_control_favourite_delete(
+            user, favourite
+        )  # Add control to delete a favourite
+        body.add_control_favourite_edit(
+            user, favourite
+        )  # Add control to edit a favourite
+        body.add_control_locations_all()  # Add control to get all locations
 
         body["item"] = favourite.serialize()
         return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
@@ -141,7 +154,7 @@ class FavouriteItem(Resource):
         favourite.deserialize(request.json)
         db.session.commit()
 
-        self._clear_cache(user) # Clear the cache
+        self._clear_cache(user)  # Clear the cache
 
         return Response(status=204)
 
@@ -155,6 +168,6 @@ class FavouriteItem(Resource):
         db.session.delete(favourite)
         db.session.commit()
 
-        self._clear_cache(user) # Clear the cache
+        self._clear_cache(user)  # Clear the cache
 
         return Response(status=204)

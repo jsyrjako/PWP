@@ -106,10 +106,10 @@ pytest --cov-report term-missing --cov=bikinghub
 
 ### Linting
 
-Using Pylint linter
+Using Pylint linter (With some disabled warnings per course instructions)
 
 ```bash
-pylint bikinghub
+pylint bikinghub --disable=no-member,import-outside-toplevel,no-self-use
 ```
 
 ### Formatting

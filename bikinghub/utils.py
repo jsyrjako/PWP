@@ -10,12 +10,11 @@ This module contains utility functions for the Bikinghub API
 import os
 import json
 import secrets
-import configparser
-from dotenv import load_dotenv, find_dotenv
-from dataclasses import dataclass
-from functools import wraps
 import math
+from functools import wraps
+from dataclasses import dataclass
 from datetime import datetime
+from dotenv import load_dotenv, find_dotenv
 import requests
 from werkzeug.exceptions import Forbidden
 from flask import request, url_for, Response

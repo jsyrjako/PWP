@@ -2,20 +2,20 @@ import json
 from flask import Response, request, url_for
 from flask_restful import Resource
 from jsonschema import ValidationError, validate
-from werkzeug.exceptions import BadRequest, UnsupportedMediaType, Conflict
+from werkzeug.exceptions import UnsupportedMediaType
 from bikinghub import db
 from bikinghub.models import User
-from ..utils import (
-    require_admin,
-    require_authentication,
-    BodyBuilder,
-    create_error_response,
-)
 from bikinghub.constants import (
     LINK_RELATIONS_URL,
     USER_PROFILE,
     MASON_CONTENT,
     NAMESPACE,
+)
+from ..utils import (
+    require_admin,
+    require_authentication,
+    BodyBuilder,
+    create_error_response,
 )
 
 
@@ -105,14 +105,14 @@ class UserItem(Resource):
             return create_error_response(400, "Invalid input", str(e))
         except UnsupportedMediaType as e:
             return create_error_response(415, "Unsupported media type", str(e))
-          
+
         # if user is same as User.query.filter_by(name=request.json.get("name")).first():
         if user.name == request.json.get("name"):
             if request.json.get("password") != user.password:
                 user.password = request.json.get("password")
         elif User.query.filter_by(name=request.json.get("name")).first():
             return create_error_response(409, "User already exists")
-         
+
         user.deserialize(request.json)
         db.session.commit()
 
