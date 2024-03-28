@@ -18,6 +18,16 @@ api = Api(api_bp)
 api.add_resource(user.UserCollection, "/users/")
 api.add_resource(user.UserItem, "/users/<user:user>/")
 
+@api_bp.route("/login/")
+def login():
+    """
+    Login endpoint
+    """
+    body = BodyBuilder()
+    # body.add_control_user_login()
+    
+    return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
+
 # Location
 api.add_resource(location.LocationCollection, "/locations/")
 api.add_resource(location.LocationItem, "/locations/<location:location>/")
@@ -42,4 +52,5 @@ def entry_point():
     body = BodyBuilder()
     body.add_namespace(f"{NAMESPACE}", LINK_RELATIONS_URL)
     body.add_control_users_all()
+    body.add_control_user_add()
     return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)

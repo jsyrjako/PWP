@@ -323,6 +323,15 @@ def require_authentication(func):
 
     return wrapper
 
+def login_user(name, password):
+    """
+    Login a user using a name and password
+    """
+    user = User.query.filter_by(name=name).first()
+    if user and user.check_password(password):
+        return user
+    return None
+
 
 # From stack Overflow
 def haversine(lat1, lon1, lat2, lon2):

@@ -45,10 +45,10 @@ class UserCollection(Resource):
             body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
 
-    @require_admin
+
     def post(self):
         """
-        POST method for the user collection. Adds a new user. Requires admin authentication.
+        POST method for the user collection. Adds a new user.
         """
         print(f"Request: {request.json}")
         print(f"Request Headers: {request.headers}")
