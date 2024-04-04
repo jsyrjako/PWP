@@ -23,10 +23,10 @@ if __name__ == "__main__":
     print("LUODAAN CLIENTTI")
     client = BikingHubClient(session, users_href)
     print("CLIENTTI LUOTU")
-    if client.login("user1", "password1"):
-        print("Login successful")
-    else:
-        print("Login failed")
+    #if client.login("/api/login/"):
+    #    print("Login successful")
+    #else:
+    #    print("Login failed")
     client.run()
 
 

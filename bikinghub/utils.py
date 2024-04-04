@@ -162,6 +162,19 @@ class BodyBuilder(MasonBuilder):
             schema=User.json_schema(),
         )
 
+    def add_control_user_login(self):
+        """
+        Adds a control to the object for logging in a user
+        """
+        self.add_control(
+            f"{NAMESPACE}:user-login",
+            href=url_for("api.login"),
+            method="POST",
+            title="Login a user",
+            encoding="json",
+            schema=User.json_schema(),
+        )
+
     # endregion
 
     # region Location

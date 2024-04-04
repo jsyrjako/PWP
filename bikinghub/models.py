@@ -12,7 +12,8 @@ The AuthenticationKey class represents an authentication key in the database.
 
 import hashlib
 import uuid
-#from sqlalchemy.dialects.postgresql import UUID
+
+# from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from flask.cli import with_appcontext
 import click
@@ -69,6 +70,12 @@ class User(db.Model):
         Checks the password using bcrypt.
         """
         return bcrypt.check_password_hash(self.password, pw)
+
+    def get_api_key(self):
+        """
+        Gets the user's api key.
+        """
+        return str(self.api_key[0])
 
     def hash_password(self, pw):
         """
