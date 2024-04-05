@@ -78,7 +78,7 @@ def generate_voice_route():
     )
 
 
-@app.route("/download/<filename>/", methods=["GET"])
+@app.route("/download/<path:filename>/", methods=["GET"])
 def download(filename):
     """
     Route to download the generated audio file.
