@@ -131,6 +131,9 @@ class LocationItem(Resource):
         body.add_control_location_delete(location)  # Add control to delete a location
         body.add_control_location_edit(location)  # Add control to edit a location
         body.add_control_weather_all()  # Add control to get all weather
+        body.add_control_weather_location(
+            location
+        )  # Add control to get weather for a location
 
         body["item"] = location.serialize()
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
@@ -158,6 +161,7 @@ class LocationItem(Resource):
         """
         Delete a location, requires admin authentication
         """
+        print(f"LocationItem.delete() location: {location}")
         db.session.delete(location)
         db.session.commit()
 

@@ -3,7 +3,7 @@ import json
 import urllib
 import random
 
-SERVER_URL = "http://localhost:5000/"
+SERVER_URL = "http://localhost:5000"
 NAMESPACE = "bikinghub"
 
 
@@ -71,21 +71,120 @@ class BikingHubClient:
         resp = self.session.get(SERVER_URL + endpoint)
         return resp.json()
 
-    def get_weather_data(self, endpoint, location_id):
-        resp = self.session.get(SERVER_URL + endpoint + f"/{location_id}")
-        return resp.json()
+    def get_available_locations(self):
+        try:
+            ctrl = self.get_controls("locations-all")
+            headers = self.session.headers
+            resp = self.session.get(SERVER_URL + ctrl["href"], headers=headers)
+
+            if resp.status_code == 200:
+                return resp.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to get locations: {e}")
+            return None
+
+    def print_weather_data(self, data):
+        for key, value in data.items():
+            if key == "items":
+                for k, v in value.items():
+                    print(f"{k}: {v}")
+
+    def get_weather_data(self, location_id):
+        try:
+            ctrl = self.get_controls("weather-all")
+            headers = self.session.headers
+            resp = self.session.get(SERVER_URL + ctrl["href"], headers=headers)
+
+            # get href for location id
+            location_href = None
+            for item in resp.json()["items"]:
+                if item["id"] == int(location_id):
+                    location_href = item["@controls"]["self"]["href"]
+                    break
+
+            if location_href is None:
+                print("Invalid location id")
+                return None
+
+            resp = self.session.get(SERVER_URL + location_href, headers=headers)
+            return resp.json()
+        except KeyboardInterrupt:
+            return None
+
+    def locations_and_controls(self):
+        # Get locations, ask for location id and create menu from available location controls
+        resp = self.get_available_locations()
+
+        api_location_url = resp["@controls"]["self"]["href"]
+
+        # print locations and ask for location id to get weather data
+        i = 1
+        for item in resp["items"]:
+            print(f"{item['name']}: ({i})")
+            i += 1
+        # print add new location
+        print("Add new location: (0)")
+        location_id = input("Enter location id: ")
+
+        if location_id == "0":
+            ctrl = self.get_controls("location-add", api_location_url)
+            response = self.prompt_from_schema(ctrl)
+            return response.status_code
+
+        # get location href
+        location = resp["items"][int(location_id) - 1]
+        location_href = location["@controls"]["self"]["href"]
+        print(location_href)
+
+        # get location controls
+        response = self.get_data(location_href)
+        controls = response["@controls"]
+        # get controls with bikinhub: prefix
+        for key in controls.keys():
+            if key.startswith("bikinghub:"):
+                # print control name without prefix
+                if key != "bikinghub:weather-all":
+                    print(key.split(":")[1])
+
+        # ask for choice
+        choice = input("Enter choice: ")
+        # get control href
+
+        control_href = controls[f"bikinghub:{choice}"]["href"]
+        print(control_href)
+        # If control Method is GET, get data
+        if controls[f"bikinghub:{choice}"]["method"] == "GET":
+            print(f"control_href: {control_href}")
+            # ctrl = self.get_controls(choice, path=control_href)
+            response = self.get_data(control_href)
+            self.print_weather_data(response)
+        # If control Method is PUT, ask for data and put
+        elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
+            print(f"Choice: {choice}")
+            print(f"API location url: {location_href}")
+            ctrl = self.get_controls(choice, path=location_href)
+            print(ctrl)
+            response = self.put_data(ctrl)
+            print(response)
+        # If control Method is DELETE, delete
+        elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
+            print(control_href)
+            response = self.delete_data(control_href)
+            print(response)
 
     def post_data(self, endpoint):
         # ask for schema
-        resp = self.prompt_from_schema(self.get_data(endpoint))
+        resp = self.prompt_from_schema(endpoint)
         return resp.status_code
 
     def put_data(self, endpoint):
-        resp = self.prompt_from_schema(self.get_data(endpoint))
+        resp = self.prompt_from_schema(endpoint)
         return resp.status_code
 
     def delete_data(self, endpoint):
-        resp = self.session.delete(SERVER_URL + endpoint)
+        print(self.session.headers)
+        print(SERVER_URL + endpoint)
+        resp = self.session.delete(SERVER_URL + endpoint, headers=self.session.headers)
         return resp.status_code
 
     def get_ascii_font(self):
@@ -158,7 +257,8 @@ class BikingHubClient:
         print("1. Post data")
         print("2. Update data")
         print("3. Get weather data")
-        print("4. Exit")
+        print("4. Locations and controls")
+        print("Q. Exit")
 
     def login_loop(self):
         try:
@@ -193,41 +293,57 @@ class BikingHubClient:
 
     def menu_loop(self):
         try:
-            self.display_data_menu()
-            choice = input("Enter choice: ")
-            match choice:
-                case "1":
-                    data = {"key": "value"}  # replace with actual data
-                    response = self.post_data(
-                        "/api/data", data
-                    )  # replace with actual endpoint
-                    # self.stdscr.addstr(str(response) + "\n")
-                    print(str(response))
-                case "2":
-                    data = {"key": "value"}  # replace with actual data
-                    response = self.put_data(
-                        "/api/data", data
-                    )  # replace with actual endpoint
-                    # self.stdscr.addstr(str(response) + "\n")
-                    print(str(response))
-                case "3":
-                    location_id = "location_id"  # replace with actual location ID
-                    weather_data = self.get_weather_data(location_id)
-                    # self.stdscr.addstr(str(weather_data) + "\n")
-                    print(str(weather_data))
-                case "ascii":
-                    f_prompt = input("Enter font (empty for random): ")
-                    if not f_prompt:
-                        f_prompt = self.get_ascii_font()
-                    prompt = input("Enter prompt: ")
-                    ascii_art = self.get_ascii_art(prompt)
-                    # self.stdscr.addstr(ascii_art + "\n")
-                    print(ascii_art)
-                case _:
-                    # self.stdscr.addstr("Invalid choice\n")
-                    print("Invalid choice")
-            # self.stdscr.getch()
-            print("TEST Exiting client")
+            while self.logged_in is True:
+                self.display_data_menu()
+                choice = input("Enter choice: ")
+                match choice:
+                    case "1":
+                        data = {"key": "value"}  # replace with actual data
+                        response = self.post_data(
+                            "/api/locations/"
+                        )  # replace with actual endpoint
+                        # self.stdscr.addstr(str(response) + "\n")
+                        print(str(response))
+                    case "2":
+                        data = {"key": "value"}  # replace with actual data
+                        response = self.put_data(
+                            "/api/data", data
+                        )  # replace with actual endpoint
+                        # self.stdscr.addstr(str(response) + "\n")
+                        print(str(response))
+                    case "3":
+                        # get available locations
+                        response = self.get_available_locations()
+                        # print locations and ask for location id to get weather data
+                        i = 1
+                        for item in response["items"]:
+                            print(f"{item['name']}: ({i})")
+                            i += 1
+
+                        location_id = input("Enter location id: ")
+                        # get weather data
+                        response = self.get_weather_data(location_id)
+                        # print weather data
+                        print(response)
+
+                    case "4":
+                        self.locations_and_controls()
+
+                    case "ascii":
+                        f_prompt = input("Enter font (empty for random): ")
+                        if not f_prompt:
+                            f_prompt = self.get_ascii_font()
+                        prompt = input("Enter prompt: ")
+                        ascii_art = self.get_ascii_art(prompt)
+                        # self.stdscr.addstr(ascii_art + "\n")
+                        print(ascii_art)
+                    case "Q", "q", "exit", "EXIT":
+                        self.logged_in = True
+                    case _:
+                        # self.stdscr.addstr("Invalid choice\n")
+                        print("Invalid choice")
+                # self.stdscr.getch()
+                print("TEST Exiting client")
         except KeyboardInterrupt:
             pass
         finally:

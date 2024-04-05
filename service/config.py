@@ -27,7 +27,8 @@ config = {
         "trim_db": 60,
         "do_sound_norm": False,
         "stats_path": None,
-        "base_directory": "/path/to/your/base/directory"
+        "base_directory": "/",
+        "use_phonemes": False,
     }
 }
 

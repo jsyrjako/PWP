@@ -23,6 +23,7 @@
         "trim_db": 60,
         "do_sound_norm": false,
         "stats_path": null,
-        "base_directory": "/path/to/your/base/directory"
+        "base_directory": "/",
+        "use_phonemes": false
     }
 }

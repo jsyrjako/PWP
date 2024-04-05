@@ -6,7 +6,7 @@ NAMESPACE = "bikinghub"
 
 if __name__ == "__main__":
     body = None
-    print("YRITETÄÄ ACCESSAA APIA")
+    print("YRITETÄÄN ACCESSAA APIA")
     with requests.Session() as session:
         session.headers.update({"Accept": "application/vnd.mason+json"})
         resp = session.get(SERVER_URL + "/api/")
@@ -14,7 +14,7 @@ if __name__ == "__main__":
             print("Unable to access API.")
         else:
             body = resp.json()
-            print(f"TEST: API body: {body}")
+            # print(f"TEST: API body: {body}")
             users_href = body["@controls"][f"{NAMESPACE}:users-all"]["href"]
             # favorites_href = body["@controls"][f"{NAMESPACE}:favorites-all"]["href"]
             # weather_href = body["@controls"][f"{NAMESPACE}:weather-all"]["href"]

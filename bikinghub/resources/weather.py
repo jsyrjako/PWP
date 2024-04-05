@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from flask import Response, url_for
 from flask_restful import Resource
+from sqlalchemy import func
 from bikinghub.models import WeatherData, Location
 from bikinghub.constants import (
     LINK_RELATIONS_URL,
@@ -88,12 +89,13 @@ class WeatherItem(Resource):
         """
         Get a specific weather report for a location
         """
+        current_time = func.now()
         weather_obj = (
             WeatherData.query.filter_by(location_id=location.id)
-            .order_by(WeatherData.weather_time.desc())
+            .order_by(func.abs(WeatherData.weather_time - current_time))
             .first()
         )
-        if not weather_obj:
+        if not weather_obj or weather_obj.weather_time < datetime.now():
             weather_obj = create_weather_data(location)
 
         body = BodyBuilder()

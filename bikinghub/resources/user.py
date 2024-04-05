@@ -45,7 +45,6 @@ class UserCollection(Resource):
             body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
 
-
     def post(self):
         """
         POST method for the user collection. Adds a new user.
@@ -65,6 +64,7 @@ class UserCollection(Resource):
         )
         if User.query.filter_by(name=user.name).first():
             return create_error_response(409, "User already exists")
+
         db.session.add(user)
         db.session.commit()
 

@@ -240,6 +240,17 @@ class BodyBuilder(MasonBuilder):
             title="Get all weather data",
         )
 
+    def add_control_weather_location(self, location):
+        """
+        Adds a control to the object for getting weather data for a location
+        """
+        self.add_control(
+            f"{NAMESPACE}:weather-location",
+            href=url_for("api.weatheritem", location=location),
+            method="GET",
+            title="Get weather data for a location",
+        )
+
     # endregion
 
     # region Favourite
@@ -306,13 +317,19 @@ def require_admin(func):
         api_key = request.headers.get("Bikinghub-Api-Key", "").strip()
         print(f"API KEY: {api_key}")
         if not api_key or len(api_key) == 0:
+            print("NO KEY")
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
         db_key = AuthenticationKey.query.filter_by(admin=True).first()
+        db_hash = AuthenticationKey.key_hash(db_key.key)
         if not db_key:
+            print("NO KEY")
             raise Forbidden
-        if secrets.compare_digest(key_hash, db_key.key):
+        if secrets.compare_digest(key_hash, db_hash):
+            print("ADMIN")
             return func(*args, **kwargs)
+
+        print("NOOOOOOOO")
 
     return wrapper
 
@@ -329,12 +346,14 @@ def require_authentication(func):
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
         db_key = AuthenticationKey.query.filter_by(key=key_hash).first()
+        db_hash = AuthenticationKey.key_hash(db_key.key)
         if not db_key:
             raise Forbidden
-        if secrets.compare_digest(key_hash, db_key.key):
+        if secrets.compare_digest(key_hash, db_hash):
             return func(*args, **kwargs)
 
     return wrapper
+
 
 def login_user(name, password):
     """
@@ -446,7 +465,7 @@ def fetch_weather_data(lat, lon):
     """
     # print(f"fetch_weather_data: lat: {lat}, lon: {lon}")
     location = query_mml_open_data_coordinates(lat, lon)
-    # print(f"location: {location}")
+    print(f"location: {location}")
     forecasts = query_fmi_forecast(location["district"], location["municipality"])
     # print(f"forecasts: {forecasts}")
 
@@ -515,8 +534,21 @@ def query_mml_open_data_coordinates(lat, lon):
     response = requests.get(pelias_query, timeout=5)
     # print(f"response: {response.json()}")
     json_resp = response.json()
-    post_number = json_resp["features"][0]["properties"]["osoite.Osoite.postinumero"]
-    municipality_name = json_resp["features"][0]["properties"]["kuntanimiFin"]
+    post_number = ""
+    municipality_name = ""
+
+    features = json_resp.get("features", [{}])
+    if features:
+        props = features[0]
+        if props:
+            properties = features[0].get("properties", {})
+            post_number = properties.get("osoite.Osoite.postinumero")
+            municipality_name = properties.get("kuntanimiFin")
+
+    else:
+        post_number = "00100"
+        municipality_name = "Helsinki"
+
     # print(f"post_number: {post_number}, municipality_name: {municipality_name}")
 
     # Create bounding box for lat and lon
@@ -539,7 +571,17 @@ def query_mml_open_data_coordinates(lat, lon):
     place_name_response = requests.get(place_name_query, timeout=5)
     place_name_json = place_name_response.json()
     # print(f"place_name_json: {place_name_json}")
-    district = place_name_json["features"][0]["properties"]["name"][0]["spelling"]
+    district = "vallila"
+    features = place_name_json.get("features", [])
+    if features:
+        properties = features[0].get("properties", {})
+        name = properties.get("name", [])
+        if name:
+            district = name[0].get("spelling", "")
+        else:
+            district = "vallila"
+    else:
+        district = "vallila"
     # print(f"district: {district}")
 
     return_str = {

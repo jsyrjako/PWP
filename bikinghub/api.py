@@ -86,4 +86,8 @@ def entry_point():
     body.add_control_users_all()
     body.add_control_user_add()
     body.add_control_user_login()
+
+    body.add_control_locations_all()
+    body.add_control_weather_all()
+
     return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)

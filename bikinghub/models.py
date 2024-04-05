@@ -75,13 +75,17 @@ class User(db.Model):
         """
         Gets the user's api key.
         """
-        return str(self.api_key[0])
+        
+        print(self.api_key[0])
+        print(f"api_key: {self.api_key[0].key}")
+        return str(self.api_key[0].key)
 
     def hash_password(self, pw):
         """
         Hashes the password using bcrypt.
         """
         return bcrypt.generate_password_hash(pw).decode("utf-8")
+
 
     @staticmethod
     def json_schema():
@@ -492,13 +496,14 @@ class AuthenticationKey(db.Model):
     user = db.relationship("User", back_populates="api_key", uselist=False)
 
     def __init__(self, key, user_id, admin=False):
-        self.key = self.key_hash(key)
+        self.key = key
         self.user_id = user_id
         self.admin = admin
 
     @staticmethod
     def key_hash(key):
         return hashlib.sha256(key.encode()).digest()
+
 
 
 @click.command("init-db")
