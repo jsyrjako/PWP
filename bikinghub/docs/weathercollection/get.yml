@@ -1,6 +1,6 @@
-summary: Get all weather reports
-tag: 
+tags: 
   - WeatherCollection
+summary: Get all weather reports
 responses:
   '200':
     description: A list of weather reports

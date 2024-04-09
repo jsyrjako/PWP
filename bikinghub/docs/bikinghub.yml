@@ -26,10 +26,12 @@ components:
         name:
           type: string
           description: The user name.
-        # Add other properties here
+        password:
+          type: string
+          description: The user password.
       required:
         - name
-        # Add other required properties here
+        - password
 
     CreateUser:
       type: object
@@ -65,14 +67,22 @@ components:
       type: object
       properties:
         user_id:
-          type: integer
+          type: string
           description: The user id.
         location_id:
           type: integer
           description: The location id.
+        title:
+          type: string
+          description: The favourite title.
+        description:
+          type: string
+          description: The favourite description.
       required:
         - user_id
         - location_id
+        - title
+        - description
 
     Users:
       type: array

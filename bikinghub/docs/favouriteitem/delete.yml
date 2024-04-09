@@ -1,6 +1,8 @@
 summary: Delete a user's favourite location
+tags:
+  - FavouriteItem
 security:
-  - BearerAuth: []
+  - BikinghubApiKey: []
 parameters:
   - in: path
     name: user
