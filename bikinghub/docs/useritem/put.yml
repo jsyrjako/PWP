@@ -4,7 +4,7 @@ description: This endpoint updates a user item identified by the user ID. Requir
 summary: Update a user item
 parameters:
   - in: path
-    name: userId
+    name: user
     required: true
     description: The ID of the user.
     schema:
@@ -15,6 +15,8 @@ requestBody:
     application/json:
       schema:
         $ref: '#/components/schemas/User'
+security:
+  - BikinghubApiKey: []
 responses:
   '204':
     description: The user item was successfully updated. The `User` header contains the URL of the updated user.

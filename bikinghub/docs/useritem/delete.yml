@@ -6,12 +6,12 @@ operationId: deleteUser
 security:
   - BikinghubApiKey: []
 parameters:
-  - name: id
-    in: path
+  - in: path
+    name: user
     description: ID of the user to delete
     required: true
     schema:
-      type: integer
+      type: string
 responses:
   '204':
     description: User successfully deleted
