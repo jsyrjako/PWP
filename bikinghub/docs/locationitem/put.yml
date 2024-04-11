@@ -1,4 +1,6 @@
 summary: Update a location by overwriting the entire resource
+tags:
+  - LocationItem
 parameters:
   - in: path
     name: location
