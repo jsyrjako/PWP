@@ -9,6 +9,8 @@ NAMESPACE = "bikinghub"
 
 class BikingHubClient:
 
+    user_controls = {}
+
     def __init__(self, session, users_href):
         print("TEST Initializing client")
 
@@ -79,8 +81,31 @@ class BikingHubClient:
 
             if resp.status_code == 200:
                 return resp.json()
+            return None
         except requests.exceptions.RequestException as e:
             print(f"Failed to get locations: {e}")
+            return None
+
+    def get_users_favourites(self):
+        try:
+            href = self.user_controls["self"]["href"]
+            print(href)
+            resp = self.session.get(SERVER_URL + href, headers=self.session.headers)
+
+            ctrl = resp.json()["@controls"]
+
+            ctrl = ctrl["bikinghub:favourites-all"]
+            print(ctrl)
+            resp = self.session.get(
+                SERVER_URL + ctrl["href"], headers=self.session.headers
+            )
+
+            print(resp.json())
+            if resp.status_code == 200:
+                return resp.json()
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to get favourites: {e}")
             return None
 
     def print_weather_data(self, data):
@@ -91,6 +116,7 @@ class BikingHubClient:
 
     def get_weather_data(self, location_id):
         try:
+
             ctrl = self.get_controls("weather-all")
             headers = self.session.headers
             resp = self.session.get(SERVER_URL + ctrl["href"], headers=headers)
@@ -172,6 +198,25 @@ class BikingHubClient:
             response = self.delete_data(control_href)
             print(response)
 
+    def favourites_and_controls(self):
+        resp = self.get_users_favourites()
+
+        print("Favourites")
+        i = 1
+        for item in resp["items"]:
+            print(f"{item['title']}: ({i})")
+            i += 1
+        print("Add new favourite: (0)")
+        favourite_id = input("Enter favourite id: ")
+
+        if favourite_id == "0":
+            ctrl = self.get_controls(
+                "favourite-add",
+                path=resp["@controls"]["bikinghub:favourite-add"]["href"],
+            )
+            response = self.prompt_from_schema(ctrl)
+            return response.status_code
+
     def post_data(self, endpoint):
         # ask for schema
         resp = self.prompt_from_schema(endpoint)
@@ -207,6 +252,8 @@ class BikingHubClient:
             ctrl = self.get_controls("user-login")
             headers = self.session.headers
             resp = self.prompt_from_schema(ctrl, headers=headers)
+
+            self.user_controls = resp.json()["@controls"]
 
             if resp.status_code == 200:
                 print(f"Login successful")
@@ -256,7 +303,7 @@ class BikingHubClient:
     def display_data_menu(self):
         print("1. Post data")
         print("2. Update data")
-        print("3. Get weather data")
+        print("3. Favorites and controls")
         print("4. Locations and controls")
         print("Q. Exit")
 
@@ -312,19 +359,7 @@ class BikingHubClient:
                         # self.stdscr.addstr(str(response) + "\n")
                         print(str(response))
                     case "3":
-                        # get available locations
-                        response = self.get_available_locations()
-                        # print locations and ask for location id to get weather data
-                        i = 1
-                        for item in response["items"]:
-                            print(f"{item['name']}: ({i})")
-                            i += 1
-
-                        location_id = input("Enter location id: ")
-                        # get weather data
-                        response = self.get_weather_data(location_id)
-                        # print weather data
-                        print(response)
+                        self.favourites_and_controls()
 
                     case "4":
                         self.locations_and_controls()

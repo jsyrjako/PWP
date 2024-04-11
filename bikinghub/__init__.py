@@ -98,9 +98,6 @@ def create_app(test_config=None):
     def send_profile(profile):
         return f"you requested {profile} profile"
 
-
-    
-
     # @app.route("/admin/")
     # def admin_site():
     #     return app.send_static_file("html/admin.html")

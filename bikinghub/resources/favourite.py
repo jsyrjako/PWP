@@ -36,12 +36,8 @@ class FavouriteCollection(Resource):
         """
         print("Cache miss favourite")
 
-        try:
-            page = int(request.args.get("page", 0))  # Get the page number
-        except ValueError:
-            return create_error_response(400, "Invalid page number")
+        page = int(request.args.get("page", 0))  # Get the page number
 
-        # Get the first page of favourites
         remaining = (
             Favourite.query.filter_by(user=user).order_by("location_id").offset(page)
         )
@@ -52,9 +48,11 @@ class FavouriteCollection(Resource):
             "self", url_for("api.favouritecollection", user=user)
         )  # Add self control
         body.add_control_favourite_add(user)  # Add control to add a favourite
+        body.add_control("user", url_for("api.useritem", user=user))
         body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
-            item = BodyBuilder()
+            print(f"Favourite: {fav}")
+            item = BodyBuilder(title=fav.title)  # Create a new item
             item.add_control(
                 "self", url_for("api.favouriteitem", user=user, favourite=fav)
             )
@@ -79,6 +77,7 @@ class FavouriteCollection(Resource):
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
             return create_error_response(400, str(e))
+        # Not needed if request.json raises 415 error correctly
         except UnsupportedMediaType as e:
             return create_error_response(415, str(e))
 

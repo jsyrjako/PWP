@@ -25,19 +25,15 @@ def login():
     """
     Login endpoint
     """
-    #if request.method == "GET":
+    # if request.method == "GET":
     #    body = BodyBuilder()
     #    body.add_control_user_login()
     #    return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)
-    #if request.method == "POST":
+    # if request.method == "POST":
 
-    req = request.get_json()
-    if req is None:
-        return create_error_response(415, "Unsupported media type", "Use JSON")
-    elif "name" not in req or "password" not in req:
-        return create_error_response(
-            400, "Invalid input", "Missing name or password"
-        )
+    req = request.json
+    if "name" not in req or "password" not in req:
+        return create_error_response(400, "Invalid input", "Missing name or password")
     else:
         name = req["name"]
         password = req["password"]
@@ -52,8 +48,9 @@ def login():
                         "message": "Login successful",
                         "api_key": user.get_api_key(),
                         "username": user.name,
-                        "@controls": {"self": {"href": f"/api/users/{name}/"},
-                                      },
+                        "@controls": {
+                            "self": {"href": f"/api/users/{name}/"},
+                        },
                     }
                 ),
                 200,
@@ -84,6 +81,8 @@ def entry_point():
     body = BodyBuilder()
     body.add_namespace(f"{NAMESPACE}", LINK_RELATIONS_URL)
     body.add_control_users_all()
+    # add user control
+    body
     body.add_control_user_add()
     body.add_control_user_login()
 

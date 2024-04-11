@@ -75,7 +75,8 @@ class User(db.Model):
         """
         Gets the user's api key.
         """
-        
+        if not self.api_key:
+            return None
         print(self.api_key[0])
         print(f"api_key: {self.api_key[0].key}")
         return str(self.api_key[0].key)
@@ -85,7 +86,6 @@ class User(db.Model):
         Hashes the password using bcrypt.
         """
         return bcrypt.generate_password_hash(pw).decode("utf-8")
-
 
     @staticmethod
     def json_schema():
@@ -503,7 +503,6 @@ class AuthenticationKey(db.Model):
     @staticmethod
     def key_hash(key):
         return hashlib.sha256(key.encode()).digest()
-
 
 
 @click.command("init-db")

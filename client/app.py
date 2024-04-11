@@ -23,15 +23,14 @@ if __name__ == "__main__":
     print("LUODAAN CLIENTTI")
     client = BikingHubClient(session, users_href)
     print("CLIENTTI LUOTU")
-    #if client.login("/api/login/"):
+    # if client.login("/api/login/"):
     #    print("Login successful")
-    #else:
+    # else:
     #    print("Login failed")
     client.run()
 
-
     # Main loop for client
 
-        # Suorita komentoja
-    
+    # Suorita komentoja
+
     # Lopeta client

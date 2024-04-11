@@ -52,6 +52,7 @@ class LocationCollection(Resource):
         body.add_control("self", url_for("api.locationcollection"))  # Add self control
         body.add_control_add_location()  # Add control to add a location
         body["items"] = []
+        body.add_control_users_all()  # Add control to get all users
 
         # Serialize each location and add it to the response body
         for location in Location.query.all():
@@ -60,6 +61,7 @@ class LocationCollection(Resource):
                 longitude=location.longitude,
                 name=location.name,
             )
+
             item.add_control(
                 "self", url_for("api.locationitem", location=location)
             )  # Add self control
@@ -79,8 +81,9 @@ class LocationCollection(Resource):
         except ValidationError as e:
             print(f"LocationCollection.post() ValidationError: {e}")
             return create_error_response(400, str(e))
-        except UnsupportedMediaType as e:
-            return create_error_response(415, str(e))
+        # Not needed if request.json raises 415 error correctly
+        # except UnsupportedMediaType as e:
+        #    return create_error_response(415, str(e))
 
         lat = request.json.get("latitude")  # Get latitude from request
         lon = request.json.get("longitude")  # Get longitude from request

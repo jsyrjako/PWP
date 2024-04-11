@@ -26,6 +26,7 @@ from bikinghub.constants import (
     NAMESPACE,
     ERROR_PROFILE,
     MASON_CONTENT,
+    AUX_SERVICE_URL,
 )
 
 
@@ -251,6 +252,25 @@ class BodyBuilder(MasonBuilder):
             title="Get weather data for a location",
         )
 
+    def add_control_weather_read(self):
+        """
+        Adds a control for fetching speech from an external service
+        """
+        schema = {"type": "object", "required": ["text"]}
+        props = schema["properties"] = {}
+        props["text"] = {
+            "description": "Text to convert to speech",
+            "type": "string",
+        }
+        self.add_control(
+            "aux_service:weather-read",
+            href=AUX_SERVICE_URL,
+            method="POST",
+            encoding="json",
+            schema=schema,
+            title="Convert text to speech",
+        )
+
     # endregion
 
     # region Favourite
@@ -317,19 +337,15 @@ def require_admin(func):
         api_key = request.headers.get("Bikinghub-Api-Key", "").strip()
         print(f"API KEY: {api_key}")
         if not api_key or len(api_key) == 0:
-            print("NO KEY")
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
-        db_key = AuthenticationKey.query.filter_by(admin=True).first()
-        db_hash = AuthenticationKey.key_hash(db_key.key)
+        db_key = AuthenticationKey.query.filter_by(admin=True, key=api_key).first()
         if not db_key:
-            print("NO KEY")
             raise Forbidden
+        db_hash = AuthenticationKey.key_hash(db_key.key)
         if secrets.compare_digest(key_hash, db_hash):
             print("ADMIN")
             return func(*args, **kwargs)
-
-        print("NOOOOOOOO")
 
     return wrapper
 
@@ -345,24 +361,14 @@ def require_authentication(func):
         if not api_key or len(api_key) == 0:
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
-        db_key = AuthenticationKey.query.filter_by(key=key_hash).first()
-        db_hash = AuthenticationKey.key_hash(db_key.key)
+        db_key = AuthenticationKey.query.filter_by(key=api_key).first()
         if not db_key:
             raise Forbidden
+        db_hash = AuthenticationKey.key_hash(db_key.key)
         if secrets.compare_digest(key_hash, db_hash):
             return func(*args, **kwargs)
 
     return wrapper
-
-
-def login_user(name, password):
-    """
-    Login a user using a name and password
-    """
-    user = User.query.filter_by(name=name).first()
-    if user and user.check_password(password):
-        return user
-    return None
 
 
 # From stack Overflow
