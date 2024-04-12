@@ -52,7 +52,7 @@ class FavouriteCollection(Resource):
         body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
             print(f"Favourite: {fav}")
-            item = BodyBuilder(title=fav.title)  # Create a new item
+            item = BodyBuilder(title=fav.title, id=fav.id, location_id=fav.location_id)  # Create a new item
             item.add_control(
                 "self", url_for("api.favouriteitem", user=user, favourite=fav)
             )

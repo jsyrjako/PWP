@@ -57,6 +57,7 @@ class LocationCollection(Resource):
         # Serialize each location and add it to the response body
         for location in Location.query.all():
             item = BodyBuilder(
+                id=location.id,
                 latitude=location.latitude,
                 longitude=location.longitude,
                 name=location.name,
