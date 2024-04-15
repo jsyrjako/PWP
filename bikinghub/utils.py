@@ -322,6 +322,16 @@ class BodyBuilder(MasonBuilder):
             schema=Favourite.json_schema(),
         )
 
+    def add_control_favourite_get(self, user, favourite):
+        """
+        Add a control to the object for getting a favourite location
+        """
+        self.add_control(
+            f"{NAMESPACE}:favourite-location",
+            href=url_for("api.favouriteitem", user=user, favourite=favourite),
+            method="GET",
+            title="Get weather data for a location",
+        )
 
 # endregion
 

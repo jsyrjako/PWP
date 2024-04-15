@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify, send_from_directory, url_for
 import torch
 from TTS.api import TTS
 
-BIKINGHUB_API = "http://127.0.0.1:5000/api"
+BIKINGHUB_API = "http://localhost:5000/api"
 
 app = Flask(__name__)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -82,7 +82,7 @@ def entry_point():
     body.add_namespace(f"{NAMESPACE}", LINK_RELATIONS_URL)
     body.add_control_users_all()
     # add user control
-    body
+    #body
     body.add_control_user_add()
     body.add_control_user_login()
 

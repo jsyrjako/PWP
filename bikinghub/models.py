@@ -18,6 +18,7 @@ from datetime import datetime
 from flask.cli import with_appcontext
 import click
 from bikinghub import db, bcrypt
+from flask import request
 
 
 class User(db.Model):
@@ -136,7 +137,7 @@ class Favourite(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "user_id": self.user_id,
+            #"user_id": self.user_id,
             "location_id": self.location_id,
         }
 
@@ -144,10 +145,9 @@ class Favourite(db.Model):
         """
         Deserializes the Favourite object from a dictionary.
         """
-
         self.title = doc["title"]
         self.description = doc["description"]
-        self.user_id = doc["user_id"]
+        #self.user_id = doc["user_id"]
         self.location_id = doc["location_id"]
 
     @staticmethod
@@ -156,7 +156,7 @@ class Favourite(db.Model):
         Returns the json schema for the Favourite model.
         """
 
-        schema = {"type": "object", "required": ["title"]}
+        schema = {"type": "object", "required": ["title", "description", "location_id"]}
         props = schema["properties"] = {}
         props["title"] = {
             "description": "Favourite's title",

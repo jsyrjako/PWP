@@ -132,6 +132,9 @@ class FavouriteItem(Resource):
         )  # Add control to edit a favourite
         body.add_control_locations_all()  # Add control to get all locations
 
+        body.add_control_favourite_get(user, favourite)  # Add control to get all favourites
+
+       
         body["item"] = favourite.serialize()
         return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 

@@ -52,6 +52,29 @@ class BikingHubClient:
             field_type = schema["properties"][required_field].get("type")
             data[required_field] = self.convert_input(input(f"{desc}: "), field_type)
         return self.submit_data(ctrl, data)
+    
+    def prompt_from_schema_favourite(self, ctrl, location_id=None, headers=None):
+        """Prompt the user for input based on the schema in the control."""
+        print(f"location_id: {location_id}")
+        data = {}
+        schema = ctrl.get("schema")
+        if not schema:
+            schema_url = ctrl["schemaUrl"]
+            schema_resp = self.session.get(schema_url, headers=headers)
+            if schema_resp.status_code != 200:
+                print("Unable to access schema.")
+                return None
+            schema = schema_resp.json()
+        fields = schema["required"]
+        for required_field in fields:
+            desc = schema["properties"][required_field].get("description")
+            field_type = schema["properties"][required_field].get("type")
+            print(f"required_field: {required_field}")
+            if required_field == "location_id":
+                data[required_field] = location_id
+            else:
+                data[required_field] = self.convert_input(input(f"{desc}: "), field_type)
+        return self.submit_data(ctrl, data)
 
     def convert_input(self, user_input, field_type):
         convert_functions = {"integer": int, "number": float, "string": str}
@@ -59,6 +82,7 @@ class BikingHubClient:
 
     def get_controls(self, control_name, path="/api/"):
         body = None
+        print(f"get_controls path: {path}")
         resp = self.session.get(SERVER_URL + path)
         if resp.status_code != 200:
             print("Unable to access API.")
@@ -113,6 +137,19 @@ class BikingHubClient:
             if key == "items":
                 for k, v in value.items():
                     print(f"{k}: {v}")
+
+    def print_favorite_data(self, data):
+        for key, value in data.items():
+            if key == "items":
+                for k, v in value.items():
+                    print(f"{k}: {v}")
+
+    def get_location_href(self, location_id):
+        resp = self.get_available_locations()
+        for item in resp["items"]:
+            if item.get("id") == location_id:
+                return item["@controls"]["self"]["href"]
+        return None
 
     def get_weather_data(self, location_id):
         try:
@@ -187,21 +224,22 @@ class BikingHubClient:
 
         if already_in_favourites == False:
             print("favourite-add")
-
+        
         # ask for choice
         choice = input("Enter choice: ")
-        # get control href
-        
+
         if choice == "favourite-add":
             ctrl = self.get_controls(
                 "favourite-add",
                 path=resp["@controls"]["bikinghub:favourite-add"]["href"],
             )
-            response = self.prompt_from_schema(ctrl)
+            response = self.prompt_from_schema_favourite(ctrl, location.get("id"))
             return response.status_code
         
+        # get control href
         control_href = controls[f"bikinghub:{choice}"]["href"]
         print(control_href)
+        
         # If control Method is GET, get data
         if controls[f"bikinghub:{choice}"]["method"] == "GET":
             print(f"control_href: {control_href}")
@@ -221,7 +259,7 @@ class BikingHubClient:
             print(control_href)
             response = self.delete_data(control_href)
             print(response)
-
+        
     def favourites_and_controls(self):
         resp = self.get_users_favourites()
 
@@ -230,40 +268,50 @@ class BikingHubClient:
         for item in resp["items"]:
             print(f"{item['title']}: ({i})")
             i += 1
-        print("Add new favourite: (0)")
         favourite_id = input("Enter favourite id: ")
 
-        if favourite_id == "0":
-            ctrl = self.get_controls(
-                "favourite-add",
-                path=resp["@controls"]["bikinghub:favourite-add"]["href"],
-            )
-            response = self.prompt_from_schema(ctrl)
-            return response.status_code
-        else:
-            favourite = resp["items"][int(favourite_id) - 1]
-            favourite_href = favourite["@controls"]["self"]["href"]
-            print(favourite_href)
-
-            controls = self.get_data(favourite_href)["@controls"]
-            for key in controls.keys():
-                if key.startswith("bikinghub:"):
+        favourite = resp["items"][int(favourite_id) - 1]
+        favourite_href = favourite["@controls"]["self"]["href"]
+        #print(favourite_href)
+     
+        controls = self.get_data(favourite_href)["@controls"]
+        #print(f"controls **************:{controls}")
+        for key in controls.keys():
+            if key.startswith("bikinghub:"):
+                # print control name without prefix
+                if key != "bikinghub:locations-all":
                     print(key.split(":")[1])
 
-            choice = input("Enter choice: ")
-            control_href = controls[f"bikinghub:{choice}"]["href"]
-            print(control_href)
+        # ask for choice
+        choice = input("Enter choice: ")
 
-            if controls[f"bikinghub:{choice}"]["method"] == "GET":
-                response = self.get_data(control_href)
-                print(response)
-            elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
-                ctrl = self.get_controls(choice, path=favourite_href)
-                response = self.put_data(ctrl)
-                print(response)
-            elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
-                response = self.delete_data(control_href)
-                print(response)
+        # get control href
+        control_href = controls[f"bikinghub:{choice}"]["href"]
+        #print(control_href)
+
+        # If control Method is GET, get data
+        if controls[f"bikinghub:{choice}"]["method"] == "GET":
+            response = self.get_data(control_href)
+            self.print_favorite_data(response)
+            # Get specific location id associated with the favorite
+            location_id = favourite.get("location_id")
+            # Retrieve controls for the specific location
+            location_href = self.get_location_href(location_id)
+            # Get weather data for the specific location
+            response_location = self.get_data(location_href)
+            control_href_location = response_location["@controls"]["bikinghub:weather-location"]["href"]
+            response_location = self.get_data(control_href_location)
+            self.print_weather_data(response_location)
+        # If control Method is PUT, ask for data and put
+        elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
+            ctrl = self.get_controls(choice, path=favourite_href)
+            response = self.put_data(ctrl)
+            print(response)
+        # If control Method is DELETE, delete
+        elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
+            response = self.delete_data(control_href)
+            print(response)
+
 
     def post_data(self, endpoint):
         # ask for schema
