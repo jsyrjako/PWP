@@ -26,7 +26,6 @@ from bikinghub.constants import (
     NAMESPACE,
     ERROR_PROFILE,
     MASON_CONTENT,
-    AUX_SERVICE_URL,
 )
 
 
@@ -252,7 +251,7 @@ class BodyBuilder(MasonBuilder):
             title="Get weather data for a location",
         )
 
-    def add_control_weather_read(self):
+    def add_control_read_text(self):
         """
         Adds a control for fetching speech from an external service
         """
@@ -263,12 +262,23 @@ class BodyBuilder(MasonBuilder):
             "type": "string",
         }
         self.add_control(
-            "aux_service:weather-read",
-            href=AUX_SERVICE_URL,
+            "aux_service:text-read",
+            href=f"{SECRETS.AUX_SERVICE_URL}/generate_voice/",
             method="POST",
             encoding="json",
             schema=schema,
             title="Convert text to speech",
+        )
+
+    def add_control_read_weather(self, location):
+        """
+        Adds a control for fetching speech from an external service
+        """
+        self.add_control(
+            "aux_service:weather-read",
+            href=f"{SECRETS.AUX_SERVICE_URL}/weather_voice/{location}",
+            method="POST",
+            title="Convert weather to speech",
         )
 
     # endregion
@@ -635,3 +645,5 @@ class SECRETS:
     load_dotenv(find_dotenv())
 
     MML_API_KEY = os.environ.get("MML_API_KEY", "")
+    AUX_SERVICE_URL = os.environ.get("AUX_SERVICE_URL", "")
+

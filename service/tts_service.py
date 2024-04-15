@@ -4,6 +4,7 @@ This module creates a Flask server to generate voice from text using TTS.
 
 from queue import Queue
 from threading import Thread
+from datetime import datetime
 import os
 import uuid
 import requests
@@ -65,14 +66,35 @@ def get_weather_from_api(location_id):
     sess = requests.Session()
 
     weather = sess.get(f"{weather_endpoint}").json()
-    formatted_weather = format_weather(weather)
+
+    formatted_weather = format_weather(weather.get("items", {}))
     print(f"Formatted weather: {formatted_weather}")
     return formatted_weather
 
 def format_weather(weather_json):
+    # remove location_id from the weather_json
+    weather_json.pop('location_id', None)
+    parsed_time = parse_datetime(weather_json.get('weather_time'))
+    try:
+        weather_json['weather_time'] = parsed_time
+    except KeyError as e:
+        print(f"An error occurred: {e}")
+        weather_json['weather_time'] = None
+
     formatted_dict = {key.replace('_', ' '): value for key, value in weather_json.items()}
     formatted_string = ', '.join(f'{key}: {value}' for key, value in formatted_dict.items())
+
+    formatted_string = formatted_string.replace('ä', 'ae').replace('ö', 'oe').replace('ü', 'ue')
+    for key, value in formatted_dict.items():
+        if isinstance(value, float):
+            formatted_string = formatted_string.replace(f'{key}: {value}', f'{key}: {value:.1f}')
+
     return formatted_string
+
+def parse_datetime(datetime_str):
+    dt = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+    formatted_time = dt.strftime("%d %B %Y at %H %M")
+    return formatted_time
 
 @app.route("/generate_voice/", methods=["POST"])
 def generate_voice():

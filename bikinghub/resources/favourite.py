@@ -17,6 +17,9 @@ from ..utils import create_error_response, require_authentication, page_key, Bod
 
 
 class FavouriteCollection(Resource):
+    """
+    Resource for handling a collection of user's favourite locations
+    """
 
     # Inspiration from course material
     def _clear_cache(self, user):
@@ -98,6 +101,9 @@ class FavouriteCollection(Resource):
 
 
 class FavouriteItem(Resource):
+    """
+    Resource for handling a single user's favourite location
+    """
 
     # Inspiration from course material
     def _clear_cache(self, user):

@@ -11,7 +11,6 @@ LOCATION_PROFILE = "/profiles/location/"
 WEATHER_PROFILE = "/profiles/weather/"
 FAVOURITE_PROFILE = "/profiles/favourite/"
 ERROR_PROFILE = "/profiles/error/"
-AUX_SERVICE_URL = "localhost:5005/generate-voice/"
 
 SLIPPERY_URL = "https://liukastumisvaroitus-api.beze.io/api/v1"
 

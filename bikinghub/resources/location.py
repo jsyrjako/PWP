@@ -138,6 +138,7 @@ class LocationItem(Resource):
         body.add_control_weather_location(
             location
         )  # Add control to get weather for a location
+        body.add_control_read_weather(location)
 
         body["item"] = location.serialize()
         return Response(json.dumps(body), 200, mimetype=MASON_CONTENT)

@@ -8,4 +8,6 @@ services:
       - "5005:5005"
     volumes:
       - .:/usr/src/
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
