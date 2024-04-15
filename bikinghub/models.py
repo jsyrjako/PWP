@@ -137,7 +137,7 @@ class Favourite(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            #"user_id": self.user_id,
+            # "user_id": self.user_id,
             "location_id": self.location_id,
         }
 
@@ -147,7 +147,7 @@ class Favourite(db.Model):
         """
         self.title = doc["title"]
         self.description = doc["description"]
-        #self.user_id = doc["user_id"]
+        # self.user_id = doc["user_id"]
         self.location_id = doc["location_id"]
 
     @staticmethod

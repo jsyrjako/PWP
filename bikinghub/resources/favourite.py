@@ -55,7 +55,9 @@ class FavouriteCollection(Resource):
         body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
             print(f"Favourite: {fav}")
-            item = BodyBuilder(title=fav.title, id=fav.id, location_id=fav.location_id)  # Create a new item
+            item = BodyBuilder(
+                title=fav.title, id=fav.id, location_id=fav.location_id
+            )  # Create a new item
             item.add_control(
                 "self", url_for("api.favouriteitem", user=user, favourite=fav)
             )
@@ -138,9 +140,10 @@ class FavouriteItem(Resource):
         )  # Add control to edit a favourite
         body.add_control_locations_all()  # Add control to get all locations
 
-        body.add_control_favourite_get(user, favourite)  # Add control to get all favourites
+        body.add_control_favourite_get(
+            user, favourite
+        )  # Add control to get all favourites
 
-       
         body["item"] = favourite.serialize()
         return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)
 

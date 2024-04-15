@@ -343,6 +343,7 @@ class BodyBuilder(MasonBuilder):
             title="Get weather data for a location",
         )
 
+
 # endregion
 
 
@@ -646,4 +647,3 @@ class SECRETS:
 
     MML_API_KEY = os.environ.get("MML_API_KEY", "")
     AUX_SERVICE_URL = os.environ.get("AUX_SERVICE_URL", "")
-
