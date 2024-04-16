@@ -8,9 +8,11 @@ from datetime import datetime
 import os
 import uuid
 import requests
-from flask import Flask, request, jsonify, send_from_directory, url_for
+import json
+from flask import Flask, request, jsonify, send_from_directory, url_for, Response
 import torch
 from TTS.api import TTS
+from TTS.tts.configs.tacotron2_config import Tacotron2Config
 
 BIKINGHUB_API = "http://localhost:5000/api"
 
@@ -39,7 +41,7 @@ Thread(target=worker, daemon=True).start()
 
 
 def generate_voice_with_tts(
-    text, filename, model="tts_models/en/ljspeech/tacotron2-DDC"
+    text, filename, model="tts_models/en/ljspeech/tacotron2-DDC", config='config.json'
 ):
     """
     Generate voice with TTS model and save it to a file.
@@ -51,10 +53,10 @@ def generate_voice_with_tts(
     if not os.path.exists("static"):
         os.makedirs("static")
 
-    tts = TTS(model_name=model, progress_bar=False).to(device)
+    tts = TTS(model_name=model, progress_bar=False, config_path=config).to(device)
     filepath = os.path.join("static", filename)
 
-    tts.tts_to_file(text=text, file_path=filepath, save_format="wav")
+    tts.tts_to_file(text=text, file_path=filepath, split_sentences=False)
     return filepath
 
 def get_weather_from_api(location_id):
@@ -65,9 +67,10 @@ def get_weather_from_api(location_id):
     weather_endpoint = f"{BIKINGHUB_API}/locations/{location_id}/weather/"
     sess = requests.Session()
 
-    weather = sess.get(f"{weather_endpoint}").json()
+    resp = sess.get(f"{weather_endpoint}")
+    json_resp = resp.json()
 
-    formatted_weather = format_weather(weather.get("items", {}))
+    formatted_weather = format_weather(json_resp.get("items", {}))
     print(f"Formatted weather: {formatted_weather}")
     return formatted_weather
 
@@ -97,7 +100,7 @@ def parse_datetime(datetime_str):
     return formatted_time
 
 @app.route("/generate_voice/", methods=["POST"])
-def generate_voice():
+async def generate_voice():
     """
     Route to generate voice from text.
     Expects a JSON payload with a "text" key and POST method.
@@ -111,17 +114,20 @@ def generate_voice():
     # print(f"Adding: {text} | to with filename: {filename}")
 
     queue.put((text, filename))
-    return jsonify(
-        {
-            "message": "Your request has been added to the queue and will be processed soon.",
-            "href": file_url,
-        },
-        202,
+    return Response(
+        json.dumps(
+            {
+                "message": "Your request has been added to the queue and will be processed soon.",
+                "href": file_url,
+            },
+        ),
+        status=202,
+        mimetype="application/json"
     )
 
 
 @app.route("/weather_voice/<int:location_id>/", methods=["GET"])
-def generate_voice_weather(location_id):
+async def generate_voice_weather(location_id):
     """
     Route to generate voice from weather description.
     Fetches weather description from the bikinghub service and generates voice.
@@ -135,12 +141,15 @@ def generate_voice_weather(location_id):
     # print(f"Adding: {text} | to with filename: {filename}")
 
     queue.put((text, filename))
-    return jsonify(
-        {
-            "message": "Your request has been added to the queue and will be processed soon.",
-            "href": file_url,
-        },
-        202,
+    return Response(
+        json.dumps(
+            {
+                "message": "Your request has been added to the queue and will be processed soon.",
+                "href": file_url,
+            },
+        ),
+        status=202,
+        mimetype="application/json"
     )
 
 
