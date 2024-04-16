@@ -7,12 +7,11 @@ from threading import Thread
 from datetime import datetime
 import os
 import uuid
-import requests
 import json
+import requests
 from flask import Flask, request, jsonify, send_from_directory, url_for, Response
 import torch
 from TTS.api import TTS
-from TTS.tts.configs.tacotron2_config import Tacotron2Config
 
 BIKINGHUB_API = "http://localhost:5000/api"
 
@@ -41,63 +40,96 @@ Thread(target=worker, daemon=True).start()
 
 
 def generate_voice_with_tts(
-    text, filename, model="tts_models/en/ljspeech/tacotron2-DDC", config='config.json'
+    text, filename, model="tts_models/en/ljspeech/tacotron2-DDC"
 ):
     """
     Generate voice with TTS model and save it to a file.
-    :param text: The text to generate audio for
-    :param filename: The filename to save the audio to
-    :param model: The TTS model to use (default: tacotron2-DDC)
+
+    Parameters:
+    text (str): The text to generate audio for
+    filename (str): The filename to save the audio to
+    model (str): The TTS model to use (default: tacotron2-DDC)
     """
 
     if not os.path.exists("static"):
         os.makedirs("static")
 
-    tts = TTS(model_name=model, progress_bar=False, config_path=config).to(device)
+    tts = TTS(model_name=model, progress_bar=False).to(device)
     filepath = os.path.join("static", filename)
 
     tts.tts_to_file(text=text, file_path=filepath, split_sentences=False)
     return filepath
 
+
 def get_weather_from_api(location_id):
     """
     Fetches weather description from the bikinghub service.
-    :param location_id: The location id to fetch weather description for
+
+    Parameters:
+    location_id (int): The location id to fetch weather description for
     """
     weather_endpoint = f"{BIKINGHUB_API}/locations/{location_id}/weather/"
     sess = requests.Session()
 
-    resp = sess.get(f"{weather_endpoint}")
-    json_resp = resp.json()
+    try:
+        resp = sess.get(f"{weather_endpoint}")
+        json_resp = resp.json()
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"An error occurred: {e}")
+        return None
 
     formatted_weather = format_weather(json_resp.get("items", {}))
     print(f"Formatted weather: {formatted_weather}")
     return formatted_weather
 
+
 def format_weather(weather_json):
+    """
+    Converts the weather JSON response to a formatted string.
+    :param weather_json: The weather JSON response
+    """
     # remove location_id from the weather_json
-    weather_json.pop('location_id', None)
-    parsed_time = parse_datetime(weather_json.get('weather_time'))
+    weather_json.pop("location_id", None)
+    parsed_time = parse_datetime(weather_json.get("weather_time"))
     try:
-        weather_json['weather_time'] = parsed_time
+        weather_json["weather_time"] = parsed_time
     except KeyError as e:
         print(f"An error occurred: {e}")
-        weather_json['weather_time'] = None
+        weather_json["weather_time"] = None
 
-    formatted_dict = {key.replace('_', ' '): value for key, value in weather_json.items()}
-    formatted_string = ', '.join(f'{key}: {value}' for key, value in formatted_dict.items())
+    formatted_dict = {
+        key.replace("_", " "): value for key, value in weather_json.items()
+    }
+    formatted_string = ", ".join(
+        f"{key}: {value}" for key, value in formatted_dict.items()
+    )
 
-    formatted_string = formatted_string.replace('ä', 'ae').replace('ö', 'oe').replace('ü', 'ue')
+    formatted_string = (
+        formatted_string.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+    )
     for key, value in formatted_dict.items():
         if isinstance(value, float):
-            formatted_string = formatted_string.replace(f'{key}: {value}', f'{key}: {value:.1f}')
+            formatted_string = formatted_string.replace(
+                f"{key}: {value}", f"{key}: {value:.1f}"
+            )
 
     return formatted_string
 
+
 def parse_datetime(datetime_str):
+    """
+    Parses the datetime string to a formatted string for voice generation.
+
+    Parameters:
+    datetime_str (str): The datetime string to parse
+    """
     dt = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
-    formatted_time = dt.strftime("%d %B %Y at %H %M")
+    formatted_time = dt.strftime("%d %B %Y at %H")
     return formatted_time
+
 
 @app.route("/generate_voice/", methods=["POST"])
 async def generate_voice():
@@ -122,7 +154,7 @@ async def generate_voice():
             },
         ),
         status=202,
-        mimetype="application/json"
+        mimetype="application/json",
     )
 
 
@@ -131,6 +163,9 @@ async def generate_voice_weather(location_id):
     """
     Route to generate voice from weather description.
     Fetches weather description from the bikinghub service and generates voice.
+
+    Parameters:
+    location_id (int): The location id to fetch weather description for
     """
     text = get_weather_from_api(location_id)
     if not text:
@@ -149,7 +184,7 @@ async def generate_voice_weather(location_id):
             },
         ),
         status=202,
-        mimetype="application/json"
+        mimetype="application/json",
     )
 
 
@@ -158,6 +193,9 @@ def download(filename):
     """
     Route to download the generated audio file.
     Expects a filename and GET method.
+
+    Parameters:
+    filename (str): The filename to download
     """
     if not os.path.exists(os.path.join("static", filename)):
         return jsonify({"error": "File not found or not yet ready"}), 404

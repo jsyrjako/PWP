@@ -276,7 +276,7 @@ class BodyBuilder(MasonBuilder):
         """
         self.add_control(
             "aux_service:weather-read",
-            href=f"{SECRETS.AUX_SERVICE_URL}/weather_voice/{location}",
+            href=f"{SECRETS.AUX_SERVICE_URL}/weather_voice/{location.id}/",
             method="GET",
             title="Convert weather to speech",
         )
@@ -646,4 +646,7 @@ class SECRETS:
     load_dotenv(find_dotenv())
 
     MML_API_KEY = os.environ.get("MML_API_KEY", "")
-    AUX_SERVICE_URL = os.environ.get("AUX_SERVICE_URL", "")
+    AUX_SERVICE_URL = os.environ.get("AUX_SERV_URL", "").strip("/")
+
+    # print(f"MML_API_KEY: {MML_API_KEY}")
+    print(f"AUX_SERVICE_URL: {AUX_SERVICE_URL}")

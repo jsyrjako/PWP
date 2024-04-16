@@ -10,12 +10,18 @@ It exposes two endpoints:
 
 ### Generate Voice
 
-Send a POST request to the `/generate_voice/` endpoint with a JSON body containing a "text" field. The service will add your request to a queue and process it in the background. The response will include a URL where you can download the generated voice file once it's ready.
+Send a POST request to the `/generate_voice/` endpoint with a JSON body containing a "text" field or to or `/weather_voice/<location-id>` with location-id to fetch location weather and convert it to speech.
+The service will add your request to a queue and process it in the background.
+The response will include a URL where you can download the generated voice file once it's ready.
 
 Example request:
 
 ```sh
 curl -X POST -H "Content-Type: application/json" -d '{"text":"Hello, world!"}' http://localhost:5005/generate_voice/
+```
+
+```sh
+curl -X POST -H "Content-Type: application/json" -d http://localhost:5005/weather_voice/<location-id>/
 ```
 
 ### Download Voice File

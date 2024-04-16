@@ -36,4 +36,4 @@ MML_URL = "https://avoin-paikkatieto.maanmittauslaitos.fi"
 PAGE_SIZE = 50
 
 # Timeout for cache
-CACHE_TIME = 60 * 60 * 24 * 7  # One week
+CACHE_TIME = 60  # * 60 * 24 * 7  # One week

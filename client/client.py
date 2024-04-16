@@ -11,8 +11,11 @@ The client uses the asciified API to display ASCII art.
 import json
 import urllib
 import random
-import requests
 import time
+import os
+from getpass import getpass
+import requests
+import simpleaudio as sa
 
 SERVER_URL = "http://localhost:5000"
 NAMESPACE = "bikinghub"
@@ -49,7 +52,7 @@ class BikingHubClient:
         )
         return resp
 
-    def prompt_from_schema(self, ctrl, headers=None):
+    def prompt_from_schema(self, ctrl, location_id=None, headers=None):
         """Prompt the user for input based on the schema in the control."""
         data = {}
         schema = ctrl.get("schema")
@@ -64,31 +67,38 @@ class BikingHubClient:
         for required_field in fields:
             desc = schema["properties"][required_field].get("description")
             field_type = schema["properties"][required_field].get("type")
-            data[required_field] = self.convert_input(input(f"{desc}: "), field_type)
-        return self.submit_data(ctrl, data)
-
-    def prompt_from_schema_favourite(self, ctrl, location_id=None, headers=None):
-        """Prompt the user for input based on the schema in the control."""
-        print(f"location_id: {location_id}")
-        data = {}
-        schema = ctrl.get("schema")
-        if not schema:
-            schema_url = ctrl["schemaUrl"]
-            schema_resp = self.session.get(schema_url, headers=headers)
-            if schema_resp.status_code != 200:
-                print("Unable to access schema.")
-                return None
-            schema = schema_resp.json()
-        fields = schema["required"]
-        for required_field in fields:
-            desc = schema["properties"][required_field].get("description")
-            field_type = schema["properties"][required_field].get("type")
-            print(f"required_field: {required_field}")
-            if required_field == "location_id":
+            if required_field == "password":
+                data[required_field] = getpass(f"{desc}: ")
+            elif required_field == "location_id":
                 data[required_field] = location_id
             else:
-                data[required_field] = self.convert_input(input(f"{desc}: "), field_type)
+                data[required_field] = self.convert_input(
+                    input(f"{desc}: "), field_type
+                )
         return self.submit_data(ctrl, data)
+
+    # def prompt_from_schema_favourite(self, ctrl, location_id=None, headers=None):
+    #     """Prompt the user for input based on the schema in the control."""
+    #     print(f"location_id: {location_id}")
+    #     data = {}
+    #     schema = ctrl.get("schema")
+    #     if not schema:
+    #         schema_url = ctrl["schemaUrl"]
+    #         schema_resp = self.session.get(schema_url, headers=headers)
+    #         if schema_resp.status_code != 200:
+    #             print("Unable to access schema.")
+    #             return None
+    #         schema = schema_resp.json()
+    #     fields = schema["required"]
+    #     for required_field in fields:
+    #         desc = schema["properties"][required_field].get("description")
+    #         field_type = schema["properties"][required_field].get("type")
+    #         print(f"required_field: {required_field}")
+    #         if required_field == "location_id":
+    #             data[required_field] = location_id
+    #         else:
+    #             data[required_field] = self.convert_input(input(f"{desc}: "), field_type)
+    #     return self.submit_data(ctrl, data)
 
     def convert_input(self, user_input, field_type):
         """Convert user input to the appropriate type based on the field type."""
@@ -98,7 +108,6 @@ class BikingHubClient:
     def get_controls(self, control_name, path="/api/"):
         """Get the controls for a specific control name."""
         body = None
-        # print(f"get_controls path: {path}")
         resp = self.session.get(SERVER_URL + path)
         if resp.status_code != 200:
             print("Unable to access API.")
@@ -133,18 +142,14 @@ class BikingHubClient:
         """Get the user's favourites from the API."""
         try:
             href = self.user_controls["self"]["href"]
-            # print(href)
             resp = self.session.get(SERVER_URL + href, headers=self.session.headers)
-
             ctrl = resp.json()["@controls"]
-
             ctrl = ctrl["bikinghub:favourites-all"]
-            # print(f"get_users_favourites ctrl: {ctrl}")
+
             resp = self.session.get(
                 SERVER_URL + ctrl["href"], headers=self.session.headers
             )
 
-            # print(f"get_users_favourites resp: {resp.json()}")
             if resp.status_code == 200:
                 return resp.json()
             return None
@@ -161,8 +166,6 @@ class BikingHubClient:
                     print(f"{k:22}| {v}")
                 print("--------------------------------------")
 
-
-
     def print_favorite_data(self, data):
         """Print the title and description for a favourite."""
         for key, value in data.items():
@@ -172,7 +175,6 @@ class BikingHubClient:
                     if k == "title" or k == "description":
                         print(f"{k:12}: {v}")
                 print("--------------------------------------")
-
 
     def get_location_href(self, location_id):
         """Get the href for a specific location id."""
@@ -209,14 +211,24 @@ class BikingHubClient:
     def play_audio(self, url):
         """Play audio from the API."""
         try:
-            for(_i, _item) in range(10):
+            i = 0
+            while i < 20:
                 print(".", end="")
-                time.sleep(2)
+                time.sleep(1)
                 resp = self.session.get(url)
                 if resp.status_code == 200:
-                    print("got audio")
+                    print("Got audio")
+                    # Save the audio file
+                    os.makedirs("tmp", exist_ok=True)
+                    with open("tmp/file.wav", "wb") as audio:
+                        audio.write(resp.content)
                     break
+                i += 1
 
+            print("Playing audio")
+            wave_obj = sa.WaveObject.from_wave_file("tmp/file.wav")
+            wave_obj.play()
+            print("JORMA JORMA JORMA")
 
         except requests.exceptions.RequestException as e:
             print(f"Failed to play audio: {e}")
@@ -231,6 +243,7 @@ class BikingHubClient:
 
         api_location_url = resp["@controls"]["self"]["href"]
 
+        print("\nLocations:")
         # print locations and ask for location id to get weather data
         i = 1
         for item in resp["items"]:
@@ -238,17 +251,22 @@ class BikingHubClient:
             i += 1
         # print add new location
         print("Add new location: (0)")
+        print("Enter Q to to go back")
         location_id = input("Enter location id: ")
 
         if location_id == "0":
             ctrl = self.get_controls("location-add", api_location_url)
             response = self.prompt_from_schema(ctrl)
             return response.status_code
+        if location_id == "Q" or location_id == "q":
+            print("")
+            return
 
         # get location href
         location = resp["items"][int(location_id) - 1]
         location_href = location["@controls"]["self"]["href"]
 
+        print("\nControls:")
         # get location controls
         response = self.get_data(location_href)
         controls = response["@controls"]
@@ -258,13 +276,14 @@ class BikingHubClient:
                 # print control name without prefix
                 if key != "bikinghub:weather-all":
                     print(key.split(":")[1])
+        print("Press Q to go back")
 
         # add to favourites if not already in favourites
         resp = self.get_users_favourites()
         for item in resp["items"]:
-            print(f"location: {location}")
-            print(f"item get location_id {item.get('location_id')}")
-            print(f"location_id {location_id}")
+            # print(f"location: {location}")
+            # print(f"item get location_id {item.get('location_id')}")
+            # print(f"location_id {location_id}")
             if item.get("location_id") == location.get("id"):
                 print("Already in favourites")
                 already_in_favourites = True
@@ -276,25 +295,32 @@ class BikingHubClient:
         # ask for choice
         choice = input("Enter choice: ")
 
+        if choice == "Q" or choice == "q":
+            print("")
+            return
+
         if choice == "favourite-add" and already_in_favourites is False:
             ctrl = self.get_controls(
                 "favourite-add",
                 path=resp["@controls"]["bikinghub:favourite-add"]["href"],
             )
-            response = self.prompt_from_schema_favourite(ctrl, location.get("id"))
+            response = self.prompt_from_schema(ctrl, location.get("id"))
             return response.status_code
         if choice == "weather-read":
             print("weather-read")
             wread_resp = None
             read_obj = location["@controls"]["aux_service:weather-read"]
             print(f"read_obj: {read_obj}")
-            if read_obj.get('href') is None or read_obj.get('method') is None:
+            if read_obj.get("href") is None or read_obj.get("method") is None:
                 print("No weather data available")
                 return
             wread_resp = self.session.get(read_obj["href"])
             download_url = wread_resp.json().get("href")
             print(f"Response from aux service {response}")
             print(f"Download url: {download_url}")
+            self.play_audio(download_url)
+            print(f"Status code: {wread_resp.status_code}")
+            return wread_resp.status_code
 
         # get control href
         control_href = controls[f"bikinghub:{choice}"]["href"]
@@ -302,54 +328,60 @@ class BikingHubClient:
 
         # If control Method is GET, get data
         if controls[f"bikinghub:{choice}"]["method"] == "GET":
-            # print(f"control_href: {control_href}")
-            # ctrl = self.get_controls(choice, path=control_href)
             response = self.get_data(control_href)
             self.print_weather_data(response)
+
         # If control Method is PUT, ask for data and put
         elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
-            # print(f"Choice: {choice}")
-            # print(f"API location url: {location_href}")
             ctrl = self.get_controls(choice, path=location_href)
             print(ctrl)
             response = self.put_data(ctrl)
             print(response)
+
         # If control Method is DELETE, delete
         elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
             # print(control_href)
             response = self.delete_data(control_href)
             print(response)
 
-
     def favourites_and_controls(self):
         """Get the favourites and controls from the API."""
         resp = self.get_users_favourites()
 
-        print("Favourites")
+        print("\nFavourites:")
         i = 1
         for item in resp["items"]:
             print(f"{item['title']}: ({i})")
             i += 1
+        print("Press Q to go back")
         favourite_id = input("Enter favourite id: ")
+
+        if favourite_id == "Q" or favourite_id == "q":
+            print("")
+            return
 
         favourite = resp["items"][int(favourite_id) - 1]
         favourite_href = favourite["@controls"]["self"]["href"]
-        #print(favourite_href)
 
+        print("\nControls:")
         controls = self.get_data(favourite_href)["@controls"]
-        #print(f"controls **************:{controls}")
         for key in controls.keys():
             if key.startswith("bikinghub:"):
                 # print control name without prefix
                 if key != "bikinghub:locations-all":
                     print(key.split(":")[1])
 
+        print("Press Q to go back")
+
         # ask for choice
         choice = input("Enter choice: ")
 
+        if choice == "Q" or choice == "q":
+            print("")
+            return
+
         # get control href
         control_href = controls[f"bikinghub:{choice}"]["href"]
-        #print(control_href)
 
         # If control Method is GET, get data
         if controls[f"bikinghub:{choice}"]["method"] == "GET":
@@ -361,19 +393,21 @@ class BikingHubClient:
             location_href = self.get_location_href(location_id)
             # Get weather data for the specific location
             response_location = self.get_data(location_href)
-            control_href_location = response_location["@controls"]["bikinghub:weather-location"]["href"]
+            control_href_location = response_location["@controls"][
+                "bikinghub:weather-location"
+            ]["href"]
             response_location = self.get_data(control_href_location)
             self.print_weather_data(response_location)
         # If control Method is PUT, ask for data and put
         elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
             ctrl = self.get_controls(choice, path=favourite_href)
-            response = self.put_data(ctrl)
+            location_id = favourite.get("location_id")
+            response = self.put_data(ctrl, location_id)
             print(response)
         # If control Method is DELETE, delete
         elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
             response = self.delete_data(control_href)
             print(response)
-
 
     def post_data(self, endpoint):
         """Post data to the API."""
@@ -381,9 +415,9 @@ class BikingHubClient:
         resp = self.prompt_from_schema(endpoint)
         return resp.status_code
 
-    def put_data(self, endpoint):
+    def put_data(self, endpoint, location_id=None):
         """Put data to the API."""
-        resp = self.prompt_from_schema(endpoint)
+        resp = self.prompt_from_schema(endpoint, location_id=location_id)
         return resp.status_code
 
     def delete_data(self, endpoint):
@@ -420,17 +454,17 @@ class BikingHubClient:
             self.user_controls = resp.json()["@controls"]
 
             if resp.status_code == 200:
-                print(f"Login successful")
+                print("Login successful")
                 username = resp.json()["username"]
                 font = self.get_ascii_font()
                 print(self.get_ascii_art("Welcome", font))
                 print(self.get_ascii_art(username, font))
                 self.set_api_key(resp.json()["api_key"])
                 return True
-            print(f"Login failed")
+            print("Login failed")
             return False
         except requests.exceptions.RequestException as e:
-            print(f"Login failed")
+            print("Login failed ", e)
             return False
         except KeyboardInterrupt:
             return False
@@ -457,10 +491,6 @@ class BikingHubClient:
 
     def display_login_menu(self):
         """Display the login menu."""
-        # self.stdscr.clear()
-        # self.stdscr.addstr("1. Login (l)\n", curses.color_pair(1))
-        # self.stdscr.addstr("2. Register (r)\n", curses.color_pair(2))
-        # self.stdscr.refresh()
         print("1. Login")
         print("2. Register")
         print("3. Exit")
@@ -491,7 +521,6 @@ class BikingHubClient:
                     case "2":
                         # promt user schema for registration from server
                         response = self.register()
-                        # self.stdscr.addstr(str(response) + "\n")
                         print(str(response))
 
                     case "3":
@@ -525,8 +554,14 @@ class BikingHubClient:
                         ascii_art = self.get_ascii_art(prompt)
                         # self.stdscr.addstr(ascii_art + "\n")
                         print(ascii_art)
-                    case "Q", "q", "exit", "EXIT":
-                        self.logged_in = True
+
+                    case "tts":
+                        text = input("Enter text: ")
+                        print(f"Text to speech: {text}")
+
+                    case "Q" | "q" | "exit" | "EXIT" | "Quit" | "quit":
+                        self.logged_in = False
+                        break
                     case _:
                         # self.stdscr.addstr("Invalid choice\n")
                         print("Invalid choice")
