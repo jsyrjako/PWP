@@ -67,6 +67,7 @@ class LocationCollection(Resource):
                 "self", url_for("api.locationitem", location=location)
             )  # Add self control
             item.add_control("profile", LOCATION_PROFILE)  # Add profile control
+            item.add_control_read_weather(location)  # Add control to read weather
             body["items"].append(item)
 
         return Response(json.dumps(body), status=200, mimetype="application/json")

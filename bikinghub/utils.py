@@ -277,7 +277,7 @@ class BodyBuilder(MasonBuilder):
         self.add_control(
             "aux_service:weather-read",
             href=f"{SECRETS.AUX_SERVICE_URL}/weather_voice/{location}",
-            method="POST",
+            method="GET",
             title="Convert weather to speech",
         )
 
