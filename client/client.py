@@ -1,7 +1,7 @@
 """
-This is a client for the BikingHub API. It allows users to login, register, 
+This is a client for the BikingHub API. It allows users to login, register,
 and interact with the API.
-The client is a command line interface that allows users to post, update, and delete data, 
+The client is a command line interface that allows users to post, update, and delete data,
 as well as view available locations and weather data.
 The client also allows users to view and interact with their favourites.
 The client uses the requests library to interact with the API.
@@ -12,6 +12,7 @@ import json
 import urllib
 import random
 import requests
+import time
 
 SERVER_URL = "http://localhost:5000"
 NAMESPACE = "bikinghub"
@@ -205,6 +206,21 @@ class BikingHubClient:
         except KeyboardInterrupt:
             return None
 
+    def play_audio(self, url):
+        """Play audio from the API."""
+        try:
+            for(_i, _item) in range(10):
+                print(".", end="")
+                time.sleep(2)
+                resp = self.session.get(url)
+                if resp.status_code == 200:
+                    print("got audio")
+                    break
+
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to play audio: {e}")
+
     def locations_and_controls(self):
         """Get the locations and controls from the API."""
 
@@ -247,7 +263,7 @@ class BikingHubClient:
         resp = self.get_users_favourites()
         for item in resp["items"]:
             print(f"location: {location}")
-            print(f"item get location_id {item.get("location_id")}")
+            print(f"item get location_id {item.get('location_id')}")
             print(f"location_id {location_id}")
             if item.get("location_id") == location.get("id"):
                 print("Already in favourites")
@@ -269,8 +285,16 @@ class BikingHubClient:
             return response.status_code
         if choice == "weather-read":
             print("weather-read")
-            print("JANNE TODO! TEE TÄÄ")
-            raise NotImplementedError
+            wread_resp = None
+            read_obj = location["@controls"]["aux_service:weather-read"]
+            print(f"read_obj: {read_obj}")
+            if read_obj.get('href') is None or read_obj.get('method') is None:
+                print("No weather data available")
+                return
+            wread_resp = self.session.get(read_obj["href"])
+            download_url = wread_resp.json().get("href")
+            print(f"Response from aux service {response}")
+            print(f"Download url: {download_url}")
 
         # get control href
         control_href = controls[f"bikinghub:{choice}"]["href"]
