@@ -2,8 +2,9 @@
 # Auxiliary service
 
 This Python server provides a Text-to-Speech (TTS) service using Flask and the TTS library.
-It exposes two endpoints:
+It exposes three endpoints:
 - generating voice from text
+- generating voice from weather data
 - downloading the generated voice file.
 
 ## Usage
@@ -39,6 +40,8 @@ curl -O http://localhost:5005/download/12345678-1234-1234-1234-123456789abc.wav
 ### Requirements
 
 This service requires Python <=3.11.
+
+All the dependencies are listed in the [requirements.txt](./requirements.txt) file.
 
 #### Virtual Environment
 
@@ -82,6 +85,20 @@ python tts_service.py
 ```
 
 The service will start on port 5005
+
+## Development
+
+Linting is done using `black`. To run the linters, run:
+
+```sh
+black .
+```
+
+To test linting, run:
+    
+```sh
+pylint tts_service.py --disable=no-member,import-outside-toplevel,no-self-use
+```
 
 
 ## Note

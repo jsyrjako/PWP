@@ -89,7 +89,9 @@ def get_weather_from_api(location_id):
 def format_weather(weather_json):
     """
     Converts the weather JSON response to a formatted string.
-    :param weather_json: The weather JSON response
+
+    Parameters:
+    weather_json (str): The weather JSON response from the bikinghub service
     """
     # remove location_id from the weather_json
     weather_json.pop("location_id", None)

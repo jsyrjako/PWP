@@ -19,7 +19,9 @@ import simpleaudio as sa
 
 SERVER_URL = "http://localhost:5000"
 NAMESPACE = "bikinghub"
-
+RED = '\033[91m'
+GREEN = '\033[92m'
+RESET = '\033[0m'
 
 class BikingHubClient:
     """
@@ -29,8 +31,6 @@ class BikingHubClient:
     user_controls = {}
 
     def __init__(self, session, users_href):
-        print("TEST Initializing client")
-
         self.session = session
         self.users_href = users_href
         self.session.headers = {
@@ -72,33 +72,16 @@ class BikingHubClient:
             elif required_field == "location_id":
                 data[required_field] = location_id
             else:
-                data[required_field] = self.convert_input(
-                    input(f"{desc}: "), field_type
-                )
+                while True:
+                    try:
+                        data[required_field] = self.convert_input(
+                            input(f"{desc}: "), field_type
+                        )
+                    except ValueError:
+                        print("Invalid input")
+                        continue
+                    break              
         return self.submit_data(ctrl, data)
-
-    # def prompt_from_schema_favourite(self, ctrl, location_id=None, headers=None):
-    #     """Prompt the user for input based on the schema in the control."""
-    #     print(f"location_id: {location_id}")
-    #     data = {}
-    #     schema = ctrl.get("schema")
-    #     if not schema:
-    #         schema_url = ctrl["schemaUrl"]
-    #         schema_resp = self.session.get(schema_url, headers=headers)
-    #         if schema_resp.status_code != 200:
-    #             print("Unable to access schema.")
-    #             return None
-    #         schema = schema_resp.json()
-    #     fields = schema["required"]
-    #     for required_field in fields:
-    #         desc = schema["properties"][required_field].get("description")
-    #         field_type = schema["properties"][required_field].get("type")
-    #         print(f"required_field: {required_field}")
-    #         if required_field == "location_id":
-    #             data[required_field] = location_id
-    #         else:
-    #             data[required_field] = self.convert_input(input(f"{desc}: "), field_type)
-    #     return self.submit_data(ctrl, data)
 
     def convert_input(self, user_input, field_type):
         """Convert user input to the appropriate type based on the field type."""
@@ -228,7 +211,6 @@ class BikingHubClient:
             print("Playing audio")
             wave_obj = sa.WaveObject.from_wave_file("tmp/file.wav")
             wave_obj.play()
-            print("JORMA JORMA JORMA")
 
         except requests.exceptions.RequestException as e:
             print(f"Failed to play audio: {e}")
@@ -245,19 +227,34 @@ class BikingHubClient:
 
         print("\nLocations:")
         # print locations and ask for location id to get weather data
+        item_list =[]
         i = 1
         for item in resp["items"]:
-            print(f"{item['name']}: ({i})")
+            item_list.append(str(i))
+            print(f"{item['name']}: {RED}({i}){RESET}")
             i += 1
+            
+
         # print add new location
-        print("Add new location: (0)")
-        print("Enter Q to to go back")
+        print(f"Add new location: {RED}(0){RESET}")
+        print(f"Enter {RED}Q{RESET} to to go back")
         location_id = input("Enter location id: ")
+        
+        while location_id not in item_list and location_id not in ["0", "Q", "q"]:
+            print("Invalid location id")
+            location_id = input("Enter location id: ")
 
         if location_id == "0":
             ctrl = self.get_controls("location-add", api_location_url)
             response = self.prompt_from_schema(ctrl)
-            return response.status_code
+            if response.status_code == 201:
+                print(f"Location added {GREEN}successfully{RESET}\n")
+                return
+            else:
+                print(f"Location add {RED}failed{RESET}\n")
+
+                return
+
         if location_id == "Q" or location_id == "q":
             print("")
             return
@@ -275,8 +272,8 @@ class BikingHubClient:
             if key.startswith("bikinghub:") or key.startswith("aux_service"):
                 # print control name without prefix
                 if key != "bikinghub:weather-all":
-                    print(key.split(":")[1])
-        print("Press Q to go back")
+                    print(f"{RED}{key.split(':')[1]}{RESET}")
+        print(f"Press {RED}Q{RESET} to go back")
 
         # add to favourites if not already in favourites
         resp = self.get_users_favourites()
@@ -290,10 +287,20 @@ class BikingHubClient:
                 break
 
         if already_in_favourites is False:
-            print("favourite-add")
+            print(f"{RED}favourite-add{RESET}")
 
         # ask for choice
         choice = input("Enter choice: ")
+
+        split_keys = []
+        for key in controls.keys():
+            if key.startswith("bikinghub:") or key.startswith("aux_service"):
+                split_keys.append(key.split(":")[1])
+                
+        choice = choice.lower()
+
+        while choice not in split_keys and choice not in ["Q", "q"] and choice != "favourite-add":
+            choice = input("Enter choice: ")
 
         if choice == "Q" or choice == "q":
             print("")
@@ -305,22 +312,31 @@ class BikingHubClient:
                 path=resp["@controls"]["bikinghub:favourite-add"]["href"],
             )
             response = self.prompt_from_schema(ctrl, location.get("id"))
-            return response.status_code
+            if response.status_code == 201:
+                print(f"Favourite added {GREEN}successfully{RESET}")
+                return
+            else:
+                print(f"Favourite add {RED}failed{RESET}")
+                return
+                
         if choice == "weather-read":
             print("weather-read")
             wread_resp = None
             read_obj = location["@controls"]["aux_service:weather-read"]
-            print(f"read_obj: {read_obj}")
+            # print(f"read_obj: {read_obj}")
             if read_obj.get("href") is None or read_obj.get("method") is None:
                 print("No weather data available")
                 return
             wread_resp = self.session.get(read_obj["href"])
             download_url = wread_resp.json().get("href")
-            print(f"Response from aux service {response}")
             print(f"Download url: {download_url}")
             self.play_audio(download_url)
-            print(f"Status code: {wread_resp.status_code}")
-            return wread_resp.status_code
+            if wread_resp.status_code == 202:
+                print(f"Weather data read {GREEN} successfully{RESET}\n")
+                return
+            else:
+                print(f"Weather data read {RED}failed{RESET}\n")
+                return
 
         # get control href
         control_href = controls[f"bikinghub:{choice}"]["href"]
@@ -330,31 +346,50 @@ class BikingHubClient:
         if controls[f"bikinghub:{choice}"]["method"] == "GET":
             response = self.get_data(control_href)
             self.print_weather_data(response)
+            
 
         # If control Method is PUT, ask for data and put
         elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
             ctrl = self.get_controls(choice, path=location_href)
-            print(ctrl)
             response = self.put_data(ctrl)
-            print(response)
+            if response == 204:
+                print(f"Location updated {GREEN}successfully{RESET}")
+                return
+            else:
+                print(f"Location update {RED}failed{RESET}")
+                return
 
         # If control Method is DELETE, delete
         elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
             # print(control_href)
             response = self.delete_data(control_href)
-            print(response)
+            if response == 204:
+                print(f"Location deleted {GREEN}successfully{RESET}")
+                return
+            else:
+                print(f"Location delete {RED}failed{RESET}")
+                return
+        print("")
 
     def favourites_and_controls(self):
         """Get the favourites and controls from the API."""
         resp = self.get_users_favourites()
 
         print("\nFavourites:")
+        index_list = []
         i = 1
         for item in resp["items"]:
-            print(f"{item['title']}: ({i})")
+            index_list.append(str(i))
+            print(f"{item['title']}: {RED}({i}){RESET}")
             i += 1
-        print("Press Q to go back")
+            
+        print(f"Press {RED}Q{RESET} to go back")
+
         favourite_id = input("Enter favourite id: ")
+        
+        while favourite_id not in index_list and favourite_id not in ["Q", "q"]:
+            print("Invalid favourite id")
+            favourite_id = input("Enter favourite id: ")
 
         if favourite_id == "Q" or favourite_id == "q":
             print("")
@@ -363,18 +398,25 @@ class BikingHubClient:
         favourite = resp["items"][int(favourite_id) - 1]
         favourite_href = favourite["@controls"]["self"]["href"]
 
+        split_keys = []
+        
         print("\nControls:")
         controls = self.get_data(favourite_href)["@controls"]
         for key in controls.keys():
             if key.startswith("bikinghub:"):
                 # print control name without prefix
                 if key != "bikinghub:locations-all":
-                    print(key.split(":")[1])
+                    print(f"{RED}{key.split(':')[1]}{RESET}")
+                    split_keys.append(key.split(":")[1])
+        print(f"Press {RED}Q{RESET} to go back")
 
-        print("Press Q to go back")
+        choice = None
+                
+        while True:
+            choice = input("Enter choice: ")
+            if choice.lower() in ["quit", "q"] or choice in split_keys:
+                break
 
-        # ask for choice
-        choice = input("Enter choice: ")
 
         if choice == "Q" or choice == "q":
             print("")
@@ -403,11 +445,19 @@ class BikingHubClient:
             ctrl = self.get_controls(choice, path=favourite_href)
             location_id = favourite.get("location_id")
             response = self.put_data(ctrl, location_id)
-            print(response)
+            if response == 204:
+                print(f"Favourite updated {GREEN}successfully{RESET}")
+            else:
+                print(f"Favourite update {RED}failed{RESET}")
         # If control Method is DELETE, delete
         elif controls[f"bikinghub:{choice}"]["method"] == "DELETE":
             response = self.delete_data(control_href)
-            print(response)
+            if response == 204:
+                print(f"Favourite deleted {GREEN}successfully{RESET}")
+            else:
+                print(f"Favourite delete {RED}failed{RESET}")
+        print("")
+
 
     def post_data(self, endpoint):
         """Post data to the API."""
@@ -422,8 +472,6 @@ class BikingHubClient:
 
     def delete_data(self, endpoint):
         """Delete data from the API."""
-        print(self.session.headers)
-        print(SERVER_URL + endpoint)
         resp = self.session.delete(SERVER_URL + endpoint, headers=self.session.headers)
         return resp.status_code
 
@@ -454,17 +502,16 @@ class BikingHubClient:
             self.user_controls = resp.json()["@controls"]
 
             if resp.status_code == 200:
-                print("Login successful")
+                print(f"Login {GREEN}successful{RESET}")
                 username = resp.json()["username"]
                 font = self.get_ascii_font()
                 print(self.get_ascii_art("Welcome", font))
                 print(self.get_ascii_art(username, font))
                 self.set_api_key(resp.json()["api_key"])
                 return True
-            print("Login failed")
             return False
         except requests.exceptions.RequestException as e:
-            print("Login failed ", e)
+            print(f"Login {RED}failed{RESET}", e)
             return False
         except KeyboardInterrupt:
             return False
@@ -482,37 +529,35 @@ class BikingHubClient:
                 resp = self.prompt_from_schema(ctrl, headers=headers)
 
             if resp.status_code == 201:
-                return "User registered successfully"
+                return(f"User registered {GREEN}successfully{RESET}")
             elif resp.status_code == 409:
-                return "User already exists"
+                return("User already {RED}exists{RESET}")
             return resp.status_code
         except KeyboardInterrupt:
-            return "User registration cancelled"
+            return(f"User registration {RED}cancelled{RESET}")
 
     def display_login_menu(self):
         """Display the login menu."""
-        print("1. Login")
-        print("2. Register")
-        print("3. Exit")
-        print("4. Continue as guest")
+        print(f"{RED}1. {RESET}Login")
+        print(f"{RED}2. {RESET}Register")
+        print(f"{RED}3. {RESET}Exit")
+        print(f"{RED}4. {RESET}Continue as guest")
 
     def display_data_menu(self):
         """Display the data menu."""
-        print("1. Favorites and controls")
-        print("2. Locations and controls")
-        print("Q. Exit")
+        print(f"{RED}1. {RESET}Favorites and controls")
+        print(f"{RED}2. {RESET}Locations and controls")
+        print(f"{RED}Q. {RESET}Exit")
 
     def login_loop(self):
         """Run the login loop."""
         try:
             while self.logged_in is False:
-                print("TEST Running client")
                 self.display_login_menu()
                 choice = input("Enter choice: ")
                 match choice:
                     case "1":
                         if self.login():
-                            print("Login successful")
                             self.logged_in = True
                         else:
                             print("Login failed")
@@ -528,10 +573,10 @@ class BikingHubClient:
 
                     case "4":
                         self.logged_in = True
+                    case _:
+                        print("Invalid choice")
         except KeyboardInterrupt:
             pass
-        finally:
-            print("\nTEST Exiting client")
 
     def menu_loop(self):
         """Run the menu loop."""
@@ -552,7 +597,6 @@ class BikingHubClient:
                             f_prompt = self.get_ascii_font()
                         prompt = input("Enter prompt: ")
                         ascii_art = self.get_ascii_art(prompt)
-                        # self.stdscr.addstr(ascii_art + "\n")
                         print(ascii_art)
 
                     case "tts":
@@ -563,14 +607,9 @@ class BikingHubClient:
                         self.logged_in = False
                         break
                     case _:
-                        # self.stdscr.addstr("Invalid choice\n")
                         print("Invalid choice")
-                # self.stdscr.getch()
-                print("TEST Exiting client")
         except KeyboardInterrupt:
             pass
-        finally:
-            print("Exiting client")
 
     def run(self):
         """Run the client."""
