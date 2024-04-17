@@ -19,9 +19,10 @@ import simpleaudio as sa
 
 SERVER_URL = "http://localhost:5000"
 NAMESPACE = "bikinghub"
-RED = '\033[91m'
-GREEN = '\033[92m'
-RESET = '\033[0m'
+RED = "\033[91m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
 
 class BikingHubClient:
     """
@@ -80,7 +81,7 @@ class BikingHubClient:
                     except ValueError:
                         print("Invalid input")
                         continue
-                    break              
+                    break
         return self.submit_data(ctrl, data)
 
     def convert_input(self, user_input, field_type):
@@ -227,19 +228,18 @@ class BikingHubClient:
 
         print("\nLocations:")
         # print locations and ask for location id to get weather data
-        item_list =[]
+        item_list = []
         i = 1
         for item in resp["items"]:
             item_list.append(str(i))
             print(f"{item['name']}: {RED}({i}){RESET}")
             i += 1
-            
 
         # print add new location
         print(f"Add new location: {RED}(0){RESET}")
         print(f"Enter {RED}Q{RESET} to to go back")
         location_id = input("Enter location id: ")
-        
+
         while location_id not in item_list and location_id not in ["0", "Q", "q"]:
             print("Invalid location id")
             location_id = input("Enter location id: ")
@@ -296,10 +296,14 @@ class BikingHubClient:
         for key in controls.keys():
             if key.startswith("bikinghub:") or key.startswith("aux_service"):
                 split_keys.append(key.split(":")[1])
-                
+
         choice = choice.lower()
 
-        while choice not in split_keys and choice not in ["Q", "q"] and choice != "favourite-add":
+        while (
+            choice not in split_keys
+            and choice not in ["Q", "q"]
+            and choice != "favourite-add"
+        ):
             choice = input("Enter choice: ")
 
         if choice == "Q" or choice == "q":
@@ -318,7 +322,7 @@ class BikingHubClient:
             else:
                 print(f"Favourite add {RED}failed{RESET}")
                 return
-                
+
         if choice == "weather-read":
             print("weather-read")
             wread_resp = None
@@ -346,7 +350,6 @@ class BikingHubClient:
         if controls[f"bikinghub:{choice}"]["method"] == "GET":
             response = self.get_data(control_href)
             self.print_weather_data(response)
-            
 
         # If control Method is PUT, ask for data and put
         elif controls[f"bikinghub:{choice}"]["method"] == "PUT":
@@ -382,11 +385,11 @@ class BikingHubClient:
             index_list.append(str(i))
             print(f"{item['title']}: {RED}({i}){RESET}")
             i += 1
-            
+
         print(f"Press {RED}Q{RESET} to go back")
 
         favourite_id = input("Enter favourite id: ")
-        
+
         while favourite_id not in index_list and favourite_id not in ["Q", "q"]:
             print("Invalid favourite id")
             favourite_id = input("Enter favourite id: ")
@@ -399,7 +402,7 @@ class BikingHubClient:
         favourite_href = favourite["@controls"]["self"]["href"]
 
         split_keys = []
-        
+
         print("\nControls:")
         controls = self.get_data(favourite_href)["@controls"]
         for key in controls.keys():
@@ -411,12 +414,11 @@ class BikingHubClient:
         print(f"Press {RED}Q{RESET} to go back")
 
         choice = None
-                
+
         while True:
             choice = input("Enter choice: ")
             if choice.lower() in ["quit", "q"] or choice in split_keys:
                 break
-
 
         if choice == "Q" or choice == "q":
             print("")
@@ -457,7 +459,6 @@ class BikingHubClient:
             else:
                 print(f"Favourite delete {RED}failed{RESET}")
         print("")
-
 
     def post_data(self, endpoint):
         """Post data to the API."""
@@ -529,12 +530,12 @@ class BikingHubClient:
                 resp = self.prompt_from_schema(ctrl, headers=headers)
 
             if resp.status_code == 201:
-                return(f"User registered {GREEN}successfully{RESET}")
+                return f"User registered {GREEN}successfully{RESET}"
             elif resp.status_code == 409:
-                return("User already {RED}exists{RESET}")
+                return "User already {RED}exists{RESET}"
             return resp.status_code
         except KeyboardInterrupt:
-            return(f"User registration {RED}cancelled{RESET}")
+            return f"User registration {RED}cancelled{RESET}"
 
     def display_login_menu(self):
         """Display the login menu."""

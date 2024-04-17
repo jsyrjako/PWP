@@ -3,8 +3,8 @@ from client import BikingHubClient
 
 SERVER_URL = "http://localhost:5000"
 NAMESPACE = "bikinghub"
-YELLOW = '\033[93m'
-RESET = '\033[0m'
+YELLOW = "\033[93m"
+RESET = "\033[0m"
 
 if __name__ == "__main__":
     body = None
