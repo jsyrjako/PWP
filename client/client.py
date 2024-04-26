@@ -27,6 +27,9 @@ RESET = "\033[0m"
 class BikingHubClient:
     """
     A client for the BikingHub API.
+    Contains methods for interacting with the API, including logging in, registering,
+    and interacting with data and favourites.
+    Stores relevant data such as the session, users href, and user controls.
     """
 
     user_controls = {}
@@ -43,7 +46,12 @@ class BikingHubClient:
         self.endpoints = {}
 
     def submit_data(self, ctrl, data):
-        """Submit data to the API and return the response."""
+        """Submit data to the API and return the response.
+
+        Parameters:
+        ctrl (dict): The control object from the API
+        data (dict): The data to submit to the API
+        """
         url = SERVER_URL + ctrl["href"]
         resp = self.session.request(
             ctrl["method"],
@@ -54,7 +62,13 @@ class BikingHubClient:
         return resp
 
     def prompt_from_schema(self, ctrl, location_id=None, headers=None):
-        """Prompt the user for input based on the schema in the control."""
+        """Prompt the user for input based on the schema in the control.
+
+        Parameters:
+        ctrl (dict): The control object from the API
+        location_id (int): The location id to submit with the data
+        headers (dict): The headers to use for the request
+        """
         data = {}
         schema = ctrl.get("schema")
         if not schema:
@@ -85,12 +99,22 @@ class BikingHubClient:
         return self.submit_data(ctrl, data)
 
     def convert_input(self, user_input, field_type):
-        """Convert user input to the appropriate type based on the field type."""
+        """Convert user input to the appropriate type based on the field type.
+
+        Parameters:
+        user_input (str): The user input to convert
+        field_type (str): The type of the field
+        """
         convert_functions = {"integer": int, "number": float, "string": str}
         return convert_functions.get(field_type, str)(user_input)
 
     def get_controls(self, control_name, path="/api/"):
-        """Get the controls for a specific control name."""
+        """Get the controls for a specific control name.
+
+        Parameters:
+        control_name (str): The name of the control to get
+        path (str): The path to the control
+        """
         body = None
         resp = self.session.get(SERVER_URL + path)
         if resp.status_code != 200:
@@ -100,16 +124,26 @@ class BikingHubClient:
         return ctrl
 
     def set_api_key(self, api_key):
-        """Set the API key in the headers."""
+        """Set the API key in the headers.
+
+        Parameters:
+        api_key (str): The API key to set
+        """
         self.session.headers["Bikinghub-Api-Key"] = api_key
 
     def get_data(self, endpoint):
-        """Get data from the API."""
+        """Get data from the API.
+
+        Parameters:
+        endpoint (str): The endpoint to GET data from
+        """
         resp = self.session.get(SERVER_URL + endpoint)
         return resp.json()
 
     def get_available_locations(self):
-        """Get the available locations from the API."""
+        """
+        Get the available locations from the API.
+        """
         try:
             ctrl = self.get_controls("locations-all")
             headers = self.session.headers
@@ -123,7 +157,9 @@ class BikingHubClient:
             return None
 
     def get_users_favourites(self):
-        """Get the user's favourites from the API."""
+        """
+        Get the user's favourites from the API.
+        """
         try:
             href = self.user_controls["self"]["href"]
             resp = self.session.get(SERVER_URL + href, headers=self.session.headers)
@@ -142,7 +178,12 @@ class BikingHubClient:
             return None
 
     def print_weather_data(self, data):
-        """Print the weather data for a location."""
+        """
+        Print the weather data for a location.
+
+        Parameters:
+        data (dict): The weather data to print
+        """
         for key, value in data.items():
             if key == "items":
                 print("--------------------------------------")
@@ -151,7 +192,12 @@ class BikingHubClient:
                 print("--------------------------------------")
 
     def print_favorite_data(self, data):
-        """Print the title and description for a favourite."""
+        """
+        Print the title and description for a favourite.
+
+        Parameters:
+        data (dict): The favourite data to print
+        """
         for key, value in data.items():
             if key == "item":
                 print("--------------------------------------")
@@ -161,7 +207,12 @@ class BikingHubClient:
                 print("--------------------------------------")
 
     def get_location_href(self, location_id):
-        """Get the href for a specific location id."""
+        """
+        Get the href for a specific location id.
+
+        Parameters:
+        location_id (int): The location id to get the href for
+        """
         resp = self.get_available_locations()
         for item in resp["items"]:
             if item.get("id") == location_id:
@@ -169,7 +220,12 @@ class BikingHubClient:
         return None
 
     def get_weather_data(self, location_id):
-        """Get the weather data for a specific location id."""
+        """
+        Get the weather data for a specific location id.
+
+        Parameters:
+        location_id (int): The location id to get the weather data for
+        """
         try:
 
             ctrl = self.get_controls("weather-all")
@@ -193,7 +249,12 @@ class BikingHubClient:
             return None
 
     def play_audio(self, url):
-        """Play audio from the API."""
+        """
+        Play audio from the API.
+
+        Parameters:
+        url (str): The URL to get the audio from
+        """
         try:
             i = 0
             while i < 20:
@@ -217,7 +278,9 @@ class BikingHubClient:
             print(f"Failed to play audio: {e}")
 
     def locations_and_controls(self):
-        """Get the locations and controls from the API."""
+        """
+        Get the locations and controls from the API.
+        """
 
         # Get locations, ask for location id and create menu from available location controls
         already_in_favourites = False
@@ -375,7 +438,9 @@ class BikingHubClient:
         print("")
 
     def favourites_and_controls(self):
-        """Get the favourites and controls from the API."""
+        """
+        Get the favourites and controls from the API.
+        """
         resp = self.get_users_favourites()
 
         print("\nFavourites:")
@@ -461,23 +526,41 @@ class BikingHubClient:
         print("")
 
     def post_data(self, endpoint):
-        """Post data to the API."""
+        """
+        Post data to the API.
+
+        Parameters:
+        endpoint (str): The endpoint to POST data to
+        """
         # ask for schema
         resp = self.prompt_from_schema(endpoint)
         return resp.status_code
 
     def put_data(self, endpoint, location_id=None):
-        """Put data to the API."""
+        """
+        Put data to the API.
+
+        Parameters:
+        endpoint (str): The endpoint to PUT data to
+        location_id (int): The location id to submit with the data
+        """
         resp = self.prompt_from_schema(endpoint, location_id=location_id)
         return resp.status_code
 
     def delete_data(self, endpoint):
-        """Delete data from the API."""
+        """
+        Delete data from the API.
+
+        Parameters:
+        endpoint (str): The endpoint to send DELETE request to
+        """
         resp = self.session.delete(SERVER_URL + endpoint, headers=self.session.headers)
         return resp.status_code
 
     def get_ascii_font(self):
-        """Get a random ASCII font from the asciified API."""
+        """
+        Get a random ASCII font from the asciified API.
+        """
         font_url = "https://asciified.thelicato.io/api/v2/fonts"
         font_resp = self.session.get(font_url)
         fonts = (font_resp.json()).get("fonts")
@@ -485,7 +568,13 @@ class BikingHubClient:
         return font
 
     def get_ascii_art(self, prompt, font=None):
-        """Get ASCII art for a prompt using a specific font."""
+        """
+        Get ASCII art for a prompt using a specific font.
+
+        Parameters:
+        prompt (str): The prompt to get ASCII art for
+        font (str): The font to use for the ASCII art
+        """
         if not font:
             font = self.get_ascii_font()
         params = urllib.parse.urlencode({"text": prompt, "font": font})
@@ -494,7 +583,9 @@ class BikingHubClient:
         return resp.text
 
     def login(self):
-        """Login to the API."""
+        """
+        Login to the API. If successful, set the API key in the headers.
+        """
         try:
             ctrl = self.get_controls("user-login")
             headers = self.session.headers
@@ -518,7 +609,9 @@ class BikingHubClient:
             return False
 
     def register(self):
-        """Register a new user with the API."""
+        """
+        Register a new user with the API.
+        """
         try:
             ctrl = self.get_controls("user-add")
             headers = self.session.headers
@@ -538,20 +631,26 @@ class BikingHubClient:
             return f"User registration {RED}cancelled{RESET}"
 
     def display_login_menu(self):
-        """Display the login menu."""
+        """
+        Display the login menu.
+        """
         print(f"{RED}1. {RESET}Login")
         print(f"{RED}2. {RESET}Register")
         print(f"{RED}3. {RESET}Exit")
         print(f"{RED}4. {RESET}Continue as guest")
 
     def display_data_menu(self):
-        """Display the data menu."""
+        """
+        Display the data menu.
+        """
         print(f"{RED}1. {RESET}Favorites and controls")
         print(f"{RED}2. {RESET}Locations and controls")
         print(f"{RED}Q. {RESET}Exit")
 
     def login_loop(self):
-        """Run the login loop."""
+        """
+        Run the login loop.
+        """
         try:
             while self.logged_in is False:
                 self.display_login_menu()
@@ -580,7 +679,9 @@ class BikingHubClient:
             pass
 
     def menu_loop(self):
-        """Run the menu loop."""
+        """
+        Run the menu loop.
+        """
         try:
             while self.logged_in is True:
                 self.display_data_menu()
@@ -613,7 +714,9 @@ class BikingHubClient:
             pass
 
     def run(self):
-        """Run the client."""
+        """
+        Run the client.
+        """
 
         self.login_loop()
         self.menu_loop()

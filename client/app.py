@@ -1,3 +1,9 @@
+"""
+This is the main file for the client application. It is responsible for
+starting the client and making the initial request to the server to get the
+controls.
+"""
+
 import requests
 from client import BikingHubClient
 
