@@ -8,12 +8,12 @@ parameters:
     schema:
       type: string
     description: The identifier of the location to be updated
-  - in: body
-    name: body
-    required: true
-    schema:
-      $ref: '#/components/schemas/Location'
-    description: The new location data to overwrite the existing one
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Location'
 responses:
   '204':
     description: The location was successfully updated

@@ -162,6 +162,19 @@ class BodyBuilder(MasonBuilder):
             schema=User.json_schema(),
         )
 
+    def add_control_user_login(self):
+        """
+        Adds a control to the object for logging in a user
+        """
+        self.add_control(
+            f"{NAMESPACE}:user-login",
+            href=url_for("api.login"),
+            method="POST",
+            title="Login a user",
+            encoding="json",
+            schema=User.json_schema(),
+        )
+
     # endregion
 
     # region Location
@@ -227,6 +240,47 @@ class BodyBuilder(MasonBuilder):
             title="Get all weather data",
         )
 
+    def add_control_weather_location(self, location):
+        """
+        Adds a control to the object for getting weather data for a location
+        """
+        self.add_control(
+            f"{NAMESPACE}:weather-location",
+            href=url_for("api.weatheritem", location=location),
+            method="GET",
+            title="Get weather data for a location",
+        )
+
+    def add_control_read_text(self):
+        """
+        Adds a control for fetching speech from an external service
+        """
+        schema = {"type": "object", "required": ["text"]}
+        props = schema["properties"] = {}
+        props["text"] = {
+            "description": "Text to convert to speech",
+            "type": "string",
+        }
+        self.add_control(
+            "aux_service:text-read",
+            href=f"{SECRETS.AUX_SERVICE_URL}/generate_voice/",
+            method="POST",
+            encoding="json",
+            schema=schema,
+            title="Convert text to speech",
+        )
+
+    def add_control_read_weather(self, location):
+        """
+        Adds a control for fetching speech from an external service
+        """
+        self.add_control(
+            "aux_service:weather-read",
+            href=f"{SECRETS.AUX_SERVICE_URL}/weather_voice/{location.id}/",
+            method="GET",
+            title="Convert weather to speech",
+        )
+
     # endregion
 
     # region Favourite
@@ -278,6 +332,17 @@ class BodyBuilder(MasonBuilder):
             schema=Favourite.json_schema(),
         )
 
+    def add_control_favourite_get(self, user, favourite):
+        """
+        Add a control to the object for getting a favourite location
+        """
+        self.add_control(
+            f"{NAMESPACE}:favourite-location",
+            href=url_for("api.favouriteitem", user=user, favourite=favourite),
+            method="GET",
+            title="Get weather data for a location",
+        )
+
 
 # endregion
 
@@ -295,10 +360,12 @@ def require_admin(func):
         if not api_key or len(api_key) == 0:
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
-        db_key = AuthenticationKey.query.filter_by(admin=True).first()
+        db_key = AuthenticationKey.query.filter_by(admin=True, key=api_key).first()
         if not db_key:
             raise Forbidden
-        if secrets.compare_digest(key_hash, db_key.key):
+        db_hash = AuthenticationKey.key_hash(db_key.key)
+        if secrets.compare_digest(key_hash, db_hash):
+            print("ADMIN")
             return func(*args, **kwargs)
 
     return wrapper
@@ -315,10 +382,11 @@ def require_authentication(func):
         if not api_key or len(api_key) == 0:
             raise Forbidden
         key_hash = AuthenticationKey.key_hash(api_key)
-        db_key = AuthenticationKey.query.filter_by(key=key_hash).first()
+        db_key = AuthenticationKey.query.filter_by(key=api_key).first()
         if not db_key:
             raise Forbidden
-        if secrets.compare_digest(key_hash, db_key.key):
+        db_hash = AuthenticationKey.key_hash(db_key.key)
+        if secrets.compare_digest(key_hash, db_hash):
             return func(*args, **kwargs)
 
     return wrapper
@@ -424,7 +492,7 @@ def fetch_weather_data(lat, lon):
     """
     # print(f"fetch_weather_data: lat: {lat}, lon: {lon}")
     location = query_mml_open_data_coordinates(lat, lon)
-    # print(f"location: {location}")
+    print(f"location: {location}")
     forecasts = query_fmi_forecast(location["district"], location["municipality"])
     # print(f"forecasts: {forecasts}")
 
@@ -493,8 +561,21 @@ def query_mml_open_data_coordinates(lat, lon):
     response = requests.get(pelias_query, timeout=5)
     # print(f"response: {response.json()}")
     json_resp = response.json()
-    post_number = json_resp["features"][0]["properties"]["osoite.Osoite.postinumero"]
-    municipality_name = json_resp["features"][0]["properties"]["kuntanimiFin"]
+    post_number = ""
+    municipality_name = ""
+
+    features = json_resp.get("features", [{}])
+    if features:
+        props = features[0]
+        if props:
+            properties = features[0].get("properties", {})
+            post_number = properties.get("osoite.Osoite.postinumero")
+            municipality_name = properties.get("kuntanimiFin")
+
+    else:
+        post_number = "00100"
+        municipality_name = "Helsinki"
+
     # print(f"post_number: {post_number}, municipality_name: {municipality_name}")
 
     # Create bounding box for lat and lon
@@ -517,7 +598,17 @@ def query_mml_open_data_coordinates(lat, lon):
     place_name_response = requests.get(place_name_query, timeout=5)
     place_name_json = place_name_response.json()
     # print(f"place_name_json: {place_name_json}")
-    district = place_name_json["features"][0]["properties"]["name"][0]["spelling"]
+    district = "vallila"
+    features = place_name_json.get("features", [])
+    if features:
+        properties = features[0].get("properties", {})
+        name = properties.get("name", [])
+        if name:
+            district = name[0].get("spelling", "")
+        else:
+            district = "vallila"
+    else:
+        district = "vallila"
     # print(f"district: {district}")
 
     return_str = {
@@ -555,3 +646,7 @@ class SECRETS:
     load_dotenv(find_dotenv())
 
     MML_API_KEY = os.environ.get("MML_API_KEY", "")
+    AUX_SERVICE_URL = os.environ.get("AUX_SERV_URL", "").strip("/")
+
+    # print(f"MML_API_KEY: {MML_API_KEY}")
+    print(f"AUX_SERVICE_URL: {AUX_SERVICE_URL}")

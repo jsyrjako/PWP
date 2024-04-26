@@ -17,6 +17,9 @@ from ..utils import create_error_response, require_authentication, page_key, Bod
 
 
 class FavouriteCollection(Resource):
+    """
+    Resource for handling a collection of user's favourite locations
+    """
 
     # Inspiration from course material
     def _clear_cache(self, user):
@@ -36,12 +39,8 @@ class FavouriteCollection(Resource):
         """
         print("Cache miss favourite")
 
-        try:
-            page = int(request.args.get("page", 0))  # Get the page number
-        except ValueError:
-            return create_error_response(400, "Invalid page number")
+        page = int(request.args.get("page", 0))  # Get the page number
 
-        # Get the first page of favourites
         remaining = (
             Favourite.query.filter_by(user=user).order_by("location_id").offset(page)
         )
@@ -52,9 +51,13 @@ class FavouriteCollection(Resource):
             "self", url_for("api.favouritecollection", user=user)
         )  # Add self control
         body.add_control_favourite_add(user)  # Add control to add a favourite
+        body.add_control("user", url_for("api.useritem", user=user))
         body["items"] = []
         for fav in remaining.limit(PAGE_SIZE):
-            item = BodyBuilder()
+            print(f"Favourite: {fav}")
+            item = BodyBuilder(
+                title=fav.title, id=fav.id, location_id=fav.location_id
+            )  # Create a new item
             item.add_control(
                 "self", url_for("api.favouriteitem", user=user, favourite=fav)
             )
@@ -79,6 +82,7 @@ class FavouriteCollection(Resource):
             validate(request.json, Favourite.json_schema())
         except ValidationError as e:
             return create_error_response(400, str(e))
+        # Not needed if request.json raises 415 error correctly
         except UnsupportedMediaType as e:
             return create_error_response(415, str(e))
 
@@ -99,6 +103,9 @@ class FavouriteCollection(Resource):
 
 
 class FavouriteItem(Resource):
+    """
+    Resource for handling a single user's favourite location
+    """
 
     # Inspiration from course material
     def _clear_cache(self, user):
@@ -132,6 +139,10 @@ class FavouriteItem(Resource):
             user, favourite
         )  # Add control to edit a favourite
         body.add_control_locations_all()  # Add control to get all locations
+
+        body.add_control_favourite_get(
+            user, favourite
+        )  # Add control to get all favourites
 
         body["item"] = favourite.serialize()
         return Response(json.dumps(body), status=200, mimetype=MASON_CONTENT)

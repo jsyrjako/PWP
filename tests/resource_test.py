@@ -194,43 +194,28 @@ class TestUserCollection:
             populate_db(db)
             test_client = client.test_client()
 
-            # test with invalid rights
             valid = _get_user_json()
-            resp = test_client.post(
-                self.URL,
-                data=json.dumps(valid),
-                headers={"Content-Type": JSON_CONTENT},
-            )
-            assert resp.status_code == 403
 
             # test with wrong content type and valid rights
             resp = test_client.post(
                 self.URL,
                 data=json.dumps(valid),
-                headers=_get_admin_auth_headers(content_type="image/gif"),
+                headers={"Content-Type": "image/gif"},
             )
             assert resp.status_code == 415
 
             # test with invalid content and valid rights
             invalid_user = _get_user_json().pop("name")
             # invalid_user = {**invalid_user, **{"extra_key": "extra_value"}}
-            resp = test_client.post(
-                self.URL,
-                data=json.dumps(invalid_user),
-                headers=_get_admin_auth_headers(),
-            )
+            resp = test_client.post(self.URL, json=invalid_user)
             assert resp.status_code == 400
 
             # test with valid and see that it exists afterward
-            resp = test_client.post(
-                self.URL, data=json.dumps(valid), headers=_get_admin_auth_headers()
-            )
+            resp = test_client.post(self.URL, json=valid)
             assert resp.status_code == 201
 
             # send same data again for 409
-            resp = test_client.post(
-                self.URL, data=json.dumps(valid), headers=_get_admin_auth_headers()
-            )
+            resp = test_client.post(self.URL, json=valid)
             assert resp.status_code == 409
 
 
@@ -882,4 +867,33 @@ class TestExtraURLs:
 
             # Assert 200 for valid request
             resp = test_client.get(LINK_RELATIONS_URL)
+            assert resp.status_code == 200
+
+    def test_login(self, client):
+        LOGIN_URL = "/api/login/"
+        with client.app_context():
+            populate_db(db)
+            test_client = client.test_client()
+            valid = {
+                "name": "user37722c77-8004-41d7-993f-ef4f24356ce3",
+                "password": "password1",
+            }
+
+            # Create a user
+            resp = test_client.post("/api/users/", json=valid)
+
+            # test with wrong content type
+            resp = test_client.post(
+                LOGIN_URL, data=json.dumps(valid), headers={"Content-Type": "image/gif"}
+            )
+            assert resp.status_code == 415
+
+            # test with invalid password
+            invalid = valid.copy()
+            invalid["password"] = "wrong-password"
+            resp = test_client.post(LOGIN_URL, json=invalid)
+            assert resp.status_code == 401
+
+            # test with correct content type and valid user params
+            resp = test_client.post(LOGIN_URL, json=valid)
             assert resp.status_code == 200

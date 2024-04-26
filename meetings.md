@@ -37,27 +37,37 @@ The project was named 'app' and it should be named differently to avoid confusio
 
 
 ## Meeting 3.
-* **DATE:**
-* **ASSISTANTS:**
+* **DATE: 20.3.2024**
+* **ASSISTANTS: Mika Oja**
 
 ### Minutes
-*Summary of what was discussed during the meeting*
+Meeting was 30 minutes long and there were minor problems.
+The traffic and comment model was not implemented further due to the amount of work.
+Url:s need to be changed to prular to avoid confusion.
+MML API key need to be transferred to conf file and instance folder.Action needs to be removed.
 
 ### Action points
-*List here the actions points discussed with assistants*
+ - Remove instance folder.Action
+ - MML API key to conf file or as an environmental variable.
+ - Fix all Url:s to plurar like this /user/ -> /users/
+ - Base ids -> e.g. UUID
 
 
 
 
 ## Meeting 4.
-* **DATE:**
-* **ASSISTANTS:**
+* **DATE: 10.4.2024**
+* **ASSISTANTS: Mika Oja**
 
 ### Minutes
-*Summary of what was discussed during the meeting*
+There was a connectedness issue in the link relations, there was no way to get back to UserItem or UserCollection from Favourites, Locations or Weathers.
+Some bugs also arised when demoing the Swagger functionality.
 
 ### Action points
-*List here the actions points discussed with assistants*
+ - Custom link relation descriptions are missing.
+ - Location is not standard.
+ - Swagger didn't work properly.
+ - Useritem and favourite cannot be accessed from location-tree
 
 
 

@@ -12,11 +12,13 @@ The AuthenticationKey class represents an authentication key in the database.
 
 import hashlib
 import uuid
-#from sqlalchemy.dialects.postgresql import UUID
+
+# from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from flask.cli import with_appcontext
 import click
 from bikinghub import db, bcrypt
+from flask import request
 
 
 class User(db.Model):
@@ -69,6 +71,16 @@ class User(db.Model):
         Checks the password using bcrypt.
         """
         return bcrypt.check_password_hash(self.password, pw)
+
+    def get_api_key(self):
+        """
+        Gets the user's api key.
+        """
+        if not self.api_key:
+            return None
+        print(self.api_key[0])
+        print(f"api_key: {self.api_key[0].key}")
+        return str(self.api_key[0].key)
 
     def hash_password(self, pw):
         """
@@ -125,7 +137,7 @@ class Favourite(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "user_id": self.user_id,
+            # "user_id": self.user_id,
             "location_id": self.location_id,
         }
 
@@ -133,10 +145,9 @@ class Favourite(db.Model):
         """
         Deserializes the Favourite object from a dictionary.
         """
-
         self.title = doc["title"]
         self.description = doc["description"]
-        self.user_id = doc["user_id"]
+        # self.user_id = doc["user_id"]
         self.location_id = doc["location_id"]
 
     @staticmethod
@@ -145,7 +156,7 @@ class Favourite(db.Model):
         Returns the json schema for the Favourite model.
         """
 
-        schema = {"type": "object", "required": ["title"]}
+        schema = {"type": "object", "required": ["title", "description", "location_id"]}
         props = schema["properties"] = {}
         props["title"] = {
             "description": "Favourite's title",
@@ -485,7 +496,7 @@ class AuthenticationKey(db.Model):
     user = db.relationship("User", back_populates="api_key", uselist=False)
 
     def __init__(self, key, user_id, admin=False):
-        self.key = self.key_hash(key)
+        self.key = key
         self.user_id = user_id
         self.admin = admin
 

@@ -164,4 +164,10 @@ cython_debug/
 # Bikinghub
 bikinghub/__pycache__/
 
+# Service
+service/__pycache__/
+service/static/
+service/venv/
 
+# Client
+client/tmp/
